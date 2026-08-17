@@ -1,85 +1,66 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
+  <header class="navbar">
+    <div class="logo">
+      <h2>🎟️ Gestão de Eventos</h2>
     </div>
+
+    <nav>
+      <!-- Esses links vão dar erro no console por enquanto se as rotas não existirem, mas o visual vai funcionar perfeitamente -->
+      <RouterLink to="/">Vitrine</RouterLink>
+      <RouterLink to="/agenda">Minha Agenda</RouterLink>
+      <RouterLink to="/painel">Painel do Organizador</RouterLink>
+    </nav>
   </header>
 
-  <RouterView />
+  <main class="container">
+    <!-- É aqui que as outras páginas serão renderizadas dinamicamente -->
+    <RouterView />
+  </main>
 </template>
 
 <style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
+/* Estilização base sem depender de bibliotecas externas */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 3rem;
+  background-color: #1a1a2e; /* Azul escuro moderno */
+  color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
+.logo h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
 }
 
 nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
+  display: flex;
+  gap: 2rem;
 }
 
 nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
+  color: #e0e0e0;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1.1rem;
+  transition: 0.3s;
 }
 
-nav a:first-of-type {
-  border: 0;
+nav a:hover, nav a.router-link-exact-active {
+  color: #42b983; /* Verde destaque para o link ativo */
+  border-bottom: 2px solid #42b983;
 }
 
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
+.container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 </style>
