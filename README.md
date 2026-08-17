@@ -6,42 +6,34 @@ Projeto Integrador desenvolvido para a disciplina de Programação Orientada a O
 
 ## Equipe
 
-- Brandon Handes
-- Brendha Alves
-- Gabriel Brito
-- Luciano Godoi
-- Marcos Portela
+| Integrante | Papel |
+|---|---|
+| Brandon Handes | Desenvolvimento |
+| Brendha Alves | Desenvolvimento |
+| Gabriel Brito | Desenvolvimento |
+| Luciano Godoi | Desenvolvimento |
+| Marcos Portela | Desenvolvimento |
 
 ## Objetivo
 
-Desenvolver uma plataforma de gestão de eventos capaz de centralizar o cadastro e gerenciamento de eventos, atividades, inscrições, programação, controle de frequência, avaliações e relatórios.
+Desenvolver uma plataforma de gestão de eventos capaz de centralizar o gerenciamento de eventos, atividades, inscrições, programação, frequência, avaliações e relatórios.
 
-O sistema será desenvolvido utilizando princípios de Programação Orientada a Objetos, arquitetura organizada em camadas e testes automatizados.
-
-## Tecnologias
-
-- Java
-- Maven
-- Git
-- GitHub
-- Banco de dados relacional
-- API REST
-- Interface desktop
-- Site público
+O projeto terá como foco a aplicação dos princípios de Programação Orientada a Objetos, incluindo encapsulamento, composição, polimorfismo, interfaces, SOLID, padrões de projeto, testes e arquitetura organizada.
 
 ## Status
 
 🚧 Em desenvolvimento
 
-### Semana 1
+### Semana 1 — Domínio, responsabilidades e backlog
 
-- [x] Criação do repositório
-- [x] Inicialização da aplicação Java
+- [x] Repositório criado
+- [x] README inicial
+- [ ] Termo de Abertura
 - [ ] Glossário do domínio
 - [ ] Mapa de responsabilidades
 - [ ] Modelo inicial de domínio
-- [ ] Backlog inicial
-- [ ] Definição das decisões arquiteturais
+- [ ] Backlog
+- [ ] Decisões arquiteturais iniciais
 
 ## Disciplina
 
