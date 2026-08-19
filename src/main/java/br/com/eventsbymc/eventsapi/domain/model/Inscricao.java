@@ -1,5 +1,7 @@
 package br.com.eventsbymc.eventsapi.domain.model;
 
+import br.com.eventsbymc.eventsapi.domain.model.evento.Evento;
+
 public class Inscricao {
 
     private final Participante participante;

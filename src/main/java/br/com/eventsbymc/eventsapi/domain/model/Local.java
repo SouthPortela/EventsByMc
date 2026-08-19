@@ -1,5 +1,6 @@
 package br.com.eventsbymc.eventsapi.domain.model;
 
+import br.com.eventsbymc.eventsapi.domain.model.evento.Evento;
 import jakarta.persistence.*;
 
 import java.util.UUID;

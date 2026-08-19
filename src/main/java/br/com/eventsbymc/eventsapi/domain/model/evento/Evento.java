@@ -1,4 +1,4 @@
-package br.com.eventsbymc.eventsapi.domain.model;
+package br.com.eventsbymc.eventsapi.domain.model.evento;
 
 import java.util.Date;
 import jakarta.persistence.Entity;
