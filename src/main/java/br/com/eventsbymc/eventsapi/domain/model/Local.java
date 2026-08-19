@@ -1,10 +1,22 @@
 package br.com.eventsbymc.eventsapi.domain.model;
 
-public class Local {
+import jakarta.persistence.*;
 
+import java.util.UUID;
+
+@Table(name ="local")
+@Entity
+public class Local {
+    @Id
+    @GeneratedValue
+    private UUID id;
     private final String nome;
     private final String endereco;
     private final int capacidade;
+
+    @ManyToOne
+    @JoinColumn(name = "evento_id")
+    private Evento evento;
 
     public Local(String nome, String endereco, int capacidade) {
 
