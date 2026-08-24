@@ -1,4 +1,6 @@
-package br.com.eventsbymc.eventsapi.domain.model;
+package br.com.eventsbymc.eventsapi.domain.model.atividade;
+
+import br.com.eventsbymc.eventsapi.domain.model.Local;
 
 public class Atividade {
 

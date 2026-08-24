@@ -1,10 +1,36 @@
-package br.com.eventsbymc.eventsapi.domain.model;
+package br.com.eventsbymc.eventsapi.domain.model.evento;
 
+import java.util.Date;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.util.UUID;
+
+@Table(name = "evento")
+@Entity
+@Setter
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Evento {
+
+    @Id
+    @GeneratedValue
+    private UUID id;
 
     private String nome;
     private String descricao;
     private String estado;
+    private String imgUrl;
+    private String eventoUrl;
+    private Date data;
+
 
     public Evento(String nome, String descricao) {
         this.nome = nome;
