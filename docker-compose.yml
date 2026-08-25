@@ -6,7 +6,7 @@ services:
     container_name: events_db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_DB: ${DB_USERNAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
@@ -14,5 +14,5 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
 
-  volumes:
-    pg_data:
+volumes:
+  pg_data:
