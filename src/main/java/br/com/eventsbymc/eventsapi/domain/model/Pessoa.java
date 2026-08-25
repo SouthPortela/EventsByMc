@@ -1,22 +1,17 @@
 package br.com.eventsbymc.eventsapi.domain.model;
 
-public class Participante {
+public class Pessoa {
 
     private final String nome;
     private final String email;
 
-    public Participante(String nome, String email) {
-
+    public Pessoa(String nome, String email) {
         if (nome == null || nome.isBlank()) {
-            throw new IllegalArgumentException(
-                    "O nome é obrigatório."
-            );
+            throw new IllegalArgumentException("Nome é obrigatório.");
         }
 
         if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException(
-                    "O e-mail é obrigatório."
-            );
+            throw new IllegalArgumentException("E-mail é obrigatório.");
         }
 
         this.nome = nome;
