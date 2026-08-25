@@ -2,45 +2,71 @@ package br.com.eventsbymc.eventsapi.domain.model;
 
 public class Evento {
 
-    private String nome;
-    private String descricao;
-    private String estado;
+    private final String titulo;
+    private final String descricao;
+    private final Usuario organizador;
+    private final Programacao programacao;
 
-    public Evento(String nome, String descricao) {
-        this.nome = nome;
+    private EstadoEvento estado;
+
+    public Evento(String titulo, String descricao, Usuario organizador) {
+
+        if (titulo == null || titulo.isBlank()) {
+            throw new IllegalArgumentException("Título é obrigatório.");
+        }
+
+        if (organizador == null) {
+            throw new IllegalArgumentException("Organizador é obrigatório.");
+        }
+
+        if (!organizador.possuiPerfil(Perfil.ORGANIZADOR)) {
+            throw new IllegalArgumentException(
+                    "O usuário precisa possuir o perfil ORGANIZADOR."
+            );
+        }
+
+        this.titulo = titulo;
         this.descricao = descricao;
-        this.estado = "RASCUNHO";
-    }
-
-    public String getNome() {
-        return nome;
-    }
-
-    public String getDescricao() {
-        return descricao;
-    }
-
-    public String getEstado() {
-        return estado;
+        this.organizador = organizador;
+        this.programacao = new Programacao();
+        this.estado = EstadoEvento.RASCUNHO;
     }
 
     public void publicar() {
-        if (!estado.equals("RASCUNHO")) {
+
+        if (estado != EstadoEvento.RASCUNHO) {
             throw new IllegalStateException(
                     "Somente eventos em rascunho podem ser publicados."
             );
         }
 
-        estado = "PUBLICADO";
+        estado = EstadoEvento.PUBLICADO;
     }
 
     public void encerrar() {
-        if (!estado.equals("PUBLICADO")) {
+
+        if (estado != EstadoEvento.PUBLICADO) {
             throw new IllegalStateException(
                     "Somente eventos publicados podem ser encerrados."
             );
         }
 
-        estado = "ENCERRADO";
+        estado = EstadoEvento.ENCERRADO;
+    }
+
+    public void adicionarAtividade(Atividade atividade) {
+        programacao.adicionarAtividade(atividade);
+    }
+
+    public Programacao getProgramacao() {
+        return programacao;
+    }
+
+    public EstadoEvento getEstado() {
+        return estado;
+    }
+
+    public String getTitulo() {
+        return titulo;
     }
 }
