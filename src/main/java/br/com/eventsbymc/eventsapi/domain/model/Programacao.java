@@ -20,6 +20,10 @@ public class Programacao {
             );
         }
 
+        if (atividades.stream().anyMatch(item -> item.getId().equals(atividade.getId()))) {
+            throw new IllegalArgumentException("A atividade já pertence à programação.");
+        }
+
         atividades.add(atividade);
     }
 

@@ -1,13 +1,11 @@
 package br.com.eventsbymc.eventsapi;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-
-@SpringBootTest
 class EventsApiApplicationTests {
 
     @Test
-    void contextLoads() {
+    void applicationCanBeStartedWithoutFramework() {
+        EventsApiApplication.main(new String[0]);
     }
 
 }
