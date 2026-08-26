@@ -1,5 +1,7 @@
 package br.com.eventsbymc.eventsapi.infrastructure.jdbc;
 
+import br.com.eventsbymc.eventsapi.adapter.out.jdbc.JdbcConnectionFactory;
+import br.com.eventsbymc.eventsapi.adapter.out.jdbc.JdbcEventoRepository;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;

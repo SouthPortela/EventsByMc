@@ -1,4 +1,4 @@
-package br.com.eventsbymc.eventsapi.infrastructure.jdbc;
+package br.com.eventsbymc.eventsapi.adapter.out.jdbc;
 
 import br.com.eventsbymc.eventsapi.domain.model.Atividade;
 import br.com.eventsbymc.eventsapi.domain.model.EstadoEvento;

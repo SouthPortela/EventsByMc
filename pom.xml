@@ -30,7 +30,6 @@
             <version>5.12.2</version>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
     <build>

@@ -1,9 +1,8 @@
-package br.com.eventsbymc.eventsapi.infrastructure.jdbc;
+package br.com.eventsbymc.eventsapi.adapter.out.jdbc;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.Objects;
 
 /** Adaptador JDBC sem acoplamento com frameworks. */
 public final class JdbcConnectionFactory {
