@@ -4,15 +4,15 @@ import java.util.EnumSet;
 import java.util.Set;
 
 public class Usuario {
-
+    private final Senha senha;
     private final Pessoa pessoa;
     private final Set<Perfil> perfis;
 
-    public Usuario(Pessoa pessoa) {
+    public Usuario(Pessoa pessoa, Senha senha) {
         if (pessoa == null) {
             throw new IllegalArgumentException("Pessoa é obrigatória.");
         }
-
+        this.senha = senha;
         this.pessoa = pessoa;
         this.perfis = EnumSet.noneOf(Perfil.class);
     }
@@ -35,5 +35,8 @@ public class Usuario {
 
     public Pessoa getPessoa() {
         return pessoa;
+    }
+    public Senha getSenha(){
+        return senha;
     }
 }
