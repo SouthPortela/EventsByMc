@@ -12,6 +12,9 @@ public class Usuario {
         if (pessoa == null) {
             throw new IllegalArgumentException("Pessoa é obrigatória.");
         }
+        if(senha == null){
+            throw new IllegalArgumentException("Senha inválida");
+        }
         this.senha = senha;
         this.pessoa = pessoa;
         this.perfis = EnumSet.noneOf(Perfil.class);
