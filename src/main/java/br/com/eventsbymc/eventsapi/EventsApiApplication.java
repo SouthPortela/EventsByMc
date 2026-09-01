@@ -1,10 +1,13 @@
 package br.com.eventsbymc.eventsapi;
 
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
 public class EventsApiApplication {
 
     public static void main(String[] args) {
-        // A aplicação é deliberadamente Java puro nesta etapa. A infraestrutura
-        // de banco é criada pelos adaptadores que recebem a configuração JDBC.
+        SpringApplication.run(EventsApiApplication.class, args);
     }
 
 }

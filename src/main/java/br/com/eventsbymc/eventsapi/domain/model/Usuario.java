@@ -1,7 +1,7 @@
 package br.com.eventsbymc.eventsapi.domain.model;
 
-import java.util.EnumSet;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 
