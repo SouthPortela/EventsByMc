@@ -3,6 +3,7 @@ package br.com.eventsbymc.eventsapi.application.usecase;
 import br.com.eventsbymc.eventsapi.domain.model.Pessoa;
 import br.com.eventsbymc.eventsapi.domain.model.Senha;
 import br.com.eventsbymc.eventsapi.domain.model.Usuario;
+import br.com.eventsbymc.eventsapi.application.port.out.CodePass;
 import br.com.eventsbymc.eventsapi.application.port.out.UsuarioRepository;
 
 //Maestro que registra pessoa/usuario e envia para o banco de dados
@@ -20,7 +21,7 @@ public class RegistrarUsuarioUseCase {
         Pessoa pessoa = new Pessoa(nome, email);
         //recebe a senha e transforma em um codepass
         Senha senha = new Senha(codePass.gerarCodePass(senhaUsuario));
-        Usuario usuario = new Usuario(pessoa, senha);
+        Usuario usuario = new Usuario(pessoa, senha.getHash());
         usuarioRepository.salvar(usuario);
 
     }
