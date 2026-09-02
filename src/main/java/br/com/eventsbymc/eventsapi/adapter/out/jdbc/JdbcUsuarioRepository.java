@@ -74,6 +74,27 @@ public final class JdbcUsuarioRepository implements UsuarioRepository {
     }
 
     @Override
+    public Optional<Usuario> buscarPorEmail(String email){
+        if(email == null || email.isBlank()){
+            throw new IllegalArgumentException("Email é obrigatório.");
+        }
+        // ? usado para não haver SQL injection, evitando que o usuário insira código malicioso no campo de email.
+        try (Connection connection = connectionFactory.abrirConexao();
+             PreparedStatement statement = connection.prepareStatement(SELECT_USUARIO + " WHERE email = ?")) {
+            statement.setString(1, email);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next()) {
+                    return Optional.empty();
+                }
+                return Optional.of(mapearUsuario(connection, resultSet));
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Não foi possível consultar o usuário.", exception);
+        }
+
+    }
+
+    @Override
     public List<Usuario> listar() {
         List<Usuario> usuarios = new ArrayList<>();
         try (Connection connection = connectionFactory.abrirConexao();

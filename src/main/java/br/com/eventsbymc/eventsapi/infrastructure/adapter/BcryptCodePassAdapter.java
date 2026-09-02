@@ -11,4 +11,10 @@ public class BcryptCodePassAdapter implements CodePass {
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         return passwordEncoder.encode(senha);
     }
+
+    @Override
+    public boolean matches(String senhaPura, String senhaCriptografada) {
+        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+        return passwordEncoder.matches(senhaPura, senhaCriptografada);
+    }
 }
