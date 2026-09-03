@@ -10,9 +10,34 @@ services:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5432:5432"
+      # Porta só acessível de dentro da própria máquina (127.0.0.1) — em produção,
+      # a internet não deve conseguir se conectar direto no Postgres.
+      - "127.0.0.1:5432:5432"
     volumes:
       - ./src/main/resources/db/migration:/docker-entrypoint-initdb.d
       - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${DB_USERNAME} -d $${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: events_api
+    restart: unless-stopped
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres-db:5432/${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES}
+    ports:
+      # Só acessível localmente também — quem expõe pra internet é o Nginx (proxy reverso).
+      - "127.0.0.1:8080:8080"
+
 volumes:
   pg_data:
