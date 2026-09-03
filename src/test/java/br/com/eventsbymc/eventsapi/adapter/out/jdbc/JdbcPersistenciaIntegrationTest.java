@@ -74,6 +74,32 @@ class JdbcPersistenciaIntegrationTest {
         assertEquals(usuarioId, eventoEncontrado.getOrganizador().getId());
     }
 
+    @Test
+    void deveEncontrarUsuarioPorEmail() {
+        String identificador = UUID.randomUUID().toString();
+        String email = "busca-email-" + identificador + "@example.com";
+
+        Usuario usuario = new Usuario(
+                new Pessoa("Usuário busca por email " + identificador, email),
+                "hash-de-teste"
+        );
+
+        usuarioRepository.salvar(usuario);
+        usuarioId = usuario.getId();
+
+        Usuario usuarioEncontrado = usuarioRepository.buscarPorEmail(email).orElseThrow();
+
+        assertEquals(usuarioId, usuarioEncontrado.getId());
+        assertEquals(email, usuarioEncontrado.getPessoa().getEmail());
+    }
+
+    @Test
+    void deveRetornarVazioParaEmailInexistente() {
+        String emailInexistente = "nao-existe-" + UUID.randomUUID() + "@example.com";
+
+        assertTrue(usuarioRepository.buscarPorEmail(emailInexistente).isEmpty());
+    }
+
     @AfterEach
     void limparDadosDeTeste() {
         if (eventoId != null) {

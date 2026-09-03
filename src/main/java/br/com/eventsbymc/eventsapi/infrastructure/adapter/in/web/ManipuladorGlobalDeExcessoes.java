@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 //Aqui vamos tratar as exceções que podem ocorrer na aplicação, e retornar uma resposta padronizada para o front-end.
@@ -34,6 +35,11 @@ public class ManipuladorGlobalDeExcessoes {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErroRespostaDTO> tratarArgumentoInvalido(IllegalArgumentException exception) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ErroRespostaDTO.criar(exception.getMessage()));
+    }
+    @ExceptionHandler(NoResourceFoundException.class)
+    //rota que não bate com nenhum endpoint mapeado; sem isso, caía no handler genérico e virava 500 em vez de 404.
+    public ResponseEntity<ErroRespostaDTO> tratarRotaNaoEncontrada(NoResourceFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErroRespostaDTO.criar("Recurso não encontrado."));
     }
     @ExceptionHandler(Exception.class)
     //Erros inesperados, que não foram tratados especificamente, serão tratados aqui, e retornaremos uma mensagem genérica de erro.
