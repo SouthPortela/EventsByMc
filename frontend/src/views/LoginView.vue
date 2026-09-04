@@ -1,46 +1,50 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import type { PerfilUsuario } from '@/features/auth/types/perfil'
 import { validarLogin, type ErrosLogin } from '@/features/auth/utils/validarLogin'
 import { useAuthStore } from '@/stores/auth'
+import { ApiError } from '@/shared/services/httpClient'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const email = ref('')
 const senha = ref('')
-const redirecionamentoInicial = typeof route.query.redirect === 'string' ? route.query.redirect : ''
-const perfilInicial: Exclude<PerfilUsuario, 'VISITANTE'> = redirecionamentoInicial.startsWith(
-  '/admin',
-)
-  ? 'ADMINISTRADOR'
-  : redirecionamentoInicial.startsWith('/organizador')
-    ? 'ORGANIZADOR'
-    : 'PARTICIPANTE'
-const perfilDemonstracao = ref<Exclude<PerfilUsuario, 'VISITANTE'>>(perfilInicial)
 const erros = ref<ErrosLogin>({})
-const mensagem = ref('')
+const mensagem = ref(
+  route.query.cadastrado === '1' ? 'Cadastro realizado com sucesso. Faça login para continuar.' : '',
+)
+const tipoMensagem = ref<'info' | 'danger'>('info')
+const entrando = ref(false)
 
-function destinoPadrao(): string {
-  if (perfilDemonstracao.value === 'ADMINISTRADOR') return '/admin'
-  if (perfilDemonstracao.value === 'ORGANIZADOR') return '/organizador'
-  return '/participante'
+function destinoPorPerfil(): string {
+  if (auth.perfil === 'ADMINISTRADOR') return '/admin'
+  if (auth.perfil === 'ORGANIZADOR') return '/organizador'
+  if (auth.perfil === 'PARTICIPANTE') return '/participante'
+  // VISITANTE (ex.: quem acabou de se cadastrar e ainda não se inscreveu em nada)
+  // não tem painel próprio — /participante exige nível PARTICIPANTE e bloquearia.
+  return '/'
 }
 
-function entrar(): void {
+async function entrar(): Promise<void> {
   mensagem.value = ''
   erros.value = validarLogin(email.value, senha.value)
+  if (Object.keys(erros.value).length > 0) return
 
-  if (Object.keys(erros.value).length === 0) {
+  entrando.value = true
+  try {
+    await auth.entrarComApi(email.value, senha.value)
     const redirecionamento = typeof route.query.redirect === 'string' ? route.query.redirect : ''
     const destinoSeguro =
       redirecionamento.startsWith('/') && !redirecionamento.startsWith('//')
         ? redirecionamento
-        : destinoPadrao()
-
-    auth.entrarComo(perfilDemonstracao.value)
+        : destinoPorPerfil()
     void router.push(destinoSeguro)
+  } catch (erro) {
+    tipoMensagem.value = 'danger'
+    mensagem.value = erro instanceof ApiError ? erro.message : 'Não foi possível entrar. Tente novamente.'
+  } finally {
+    entrando.value = false
   }
 }
 </script>
@@ -68,12 +72,14 @@ function entrar(): void {
                 <h2 class="h3 fw-bold mb-2">Entre na sua conta</h2>
                 <p class="text-muted mb-4">Use o e-mail informado no cadastro.</p>
 
-                <div class="alert alert-primary border-0 small" role="note">
-                  Enquanto a API de autenticação não está conectada, escolha abaixo qual perfil
-                  deseja simular. No produto real, o backend devolverá o perfil autorizado.
+                <div
+                  v-if="mensagem"
+                  class="alert"
+                  :class="tipoMensagem === 'danger' ? 'alert-danger' : 'alert-info'"
+                  role="status"
+                >
+                  {{ mensagem }}
                 </div>
-
-                <div v-if="mensagem" class="alert alert-info" role="status">{{ mensagem }}</div>
 
                 <form novalidate @submit.prevent="entrar">
                   <div class="mb-3">
@@ -103,22 +109,9 @@ function entrar(): void {
                     <div v-if="erros.senha" class="invalid-feedback">{{ erros.senha }}</div>
                   </div>
 
-                  <div class="mb-4">
-                    <label class="form-label fw-semibold" for="perfil-demonstracao"
-                      >Perfil de demonstração</label
-                    >
-                    <select
-                      id="perfil-demonstracao"
-                      v-model="perfilDemonstracao"
-                      class="form-select form-select-lg"
-                    >
-                      <option value="PARTICIPANTE">Participante</option>
-                      <option value="ORGANIZADOR">Organizador</option>
-                      <option value="ADMINISTRADOR">Administrador</option>
-                    </select>
-                  </div>
-
-                  <button class="btn btn-primary-custom btn-lg w-100" type="submit">Entrar</button>
+                  <button class="btn btn-primary-custom btn-lg w-100" type="submit" :disabled="entrando">
+                    {{ entrando ? 'Entrando…' : 'Entrar' }}
+                  </button>
                 </form>
 
                 <p class="text-center text-muted mt-4 mb-0">

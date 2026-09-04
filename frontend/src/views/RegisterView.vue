@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import {
   validarCadastro,
   type DadosCadastro,
   type ErrosCadastro,
 } from '@/features/auth/utils/validarCadastro'
+import { cadastrar as cadastrarNaApi } from '@/features/auth/services/authService'
+import { ApiError } from '@/shared/services/httpClient'
 
+const router = useRouter()
 const dados = reactive<DadosCadastro>({
   nome: '',
   email: '',
@@ -16,13 +19,22 @@ const dados = reactive<DadosCadastro>({
 })
 const erros = ref<ErrosCadastro>({})
 const mensagem = ref('')
+const enviando = ref(false)
 
-function cadastrar(): void {
+async function cadastrar(): Promise<void> {
   mensagem.value = ''
   erros.value = validarCadastro(dados)
+  if (Object.keys(erros.value).length > 0) return
 
-  if (Object.keys(erros.value).length === 0) {
-    mensagem.value = 'Cadastro validado. O envio para a API REST será conectado na próxima etapa.'
+  enviando.value = true
+  try {
+    await cadastrarNaApi(dados.nome, dados.email, dados.senha)
+    void router.push({ name: 'login', query: { cadastrado: '1' } })
+  } catch (erro) {
+    mensagem.value =
+      erro instanceof ApiError ? erro.message : 'Não foi possível concluir o cadastro. Tente novamente.'
+  } finally {
+    enviando.value = false
   }
 }
 </script>
@@ -41,7 +53,7 @@ function cadastrar(): void {
 
         <div class="card border-0 shadow-sm">
           <div class="card-body p-4 p-lg-5">
-            <div v-if="mensagem" class="alert alert-info" role="status">{{ mensagem }}</div>
+            <div v-if="mensagem" class="alert alert-danger" role="status">{{ mensagem }}</div>
 
             <form novalidate @submit.prevent="cadastrar">
               <div class="mb-3">
@@ -116,8 +128,8 @@ function cadastrar(): void {
                 </div>
               </div>
 
-              <button class="btn btn-primary-custom btn-lg w-100 mt-4" type="submit">
-                Criar conta
+              <button class="btn btn-primary-custom btn-lg w-100 mt-4" type="submit" :disabled="enviando">
+                {{ enviando ? 'Criando conta…' : 'Criar conta' }}
               </button>
             </form>
 
