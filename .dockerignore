@@ -1,0 +1,11 @@
+target/
+.git/
+.gitignore
+.env
+.env.example
+.mvn/wrapper/maven-wrapper.jar
+frontend/
+docs/
+*.md
+.idea/
+.vscode/

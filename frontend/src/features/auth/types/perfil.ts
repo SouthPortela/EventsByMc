@@ -19,3 +19,10 @@ const NIVEL_PERFIL: Record<PerfilUsuario, number> = {
 export function possuiNivel(perfil: PerfilUsuario, minimo: PerfilUsuario): boolean {
   return NIVEL_PERFIL[perfil] >= NIVEL_PERFIL[minimo]
 }
+
+// Reduz o array de perfis devolvido pelo backend a um único "perfil ativo":
+// o de maior privilégio, na mesma ordem já usada por NIVEL_PERFIL/PERFIS.
+export function maiorPerfil(perfis: PerfilUsuario[]): PerfilUsuario {
+  const perfisDoMaiorParaOMenor = [...PERFIS].reverse()
+  return perfisDoMaiorParaOMenor.find((candidato) => perfis.includes(candidato)) ?? 'VISITANTE'
+}
