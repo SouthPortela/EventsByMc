@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -37,9 +38,14 @@ public class ManipuladorGlobalDeExcessoes {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ErroRespostaDTO.criar(exception.getMessage()));
     }
     @ExceptionHandler(NoResourceFoundException.class)
-    //rota que não bate com nenhum endpoint mapeado; sem isso, caía no handler genérico e virava 500 em vez de 404.
+    //rota que não bate com nenhum endpoint mapeado sem isso iria cair no handler genérico e virava 500 em vez de 404.
     public ResponseEntity<ErroRespostaDTO> tratarRotaNaoEncontrada(NoResourceFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErroRespostaDTO.criar("Recurso não encontrado."));
+    }
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    //acontece quando alguém acessa uma rota existente com o método HTTP errado (ex: GET em vez de POST) — sem isso caía no handler genérico e virava 500 em vez de 405.
+    public ResponseEntity<ErroRespostaDTO> tratarMetodoNaoSuportado(HttpRequestMethodNotSupportedException exception) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(ErroRespostaDTO.criar("Método HTTP não permitido para essa rota."));
     }
     @ExceptionHandler(Exception.class)
     //Erros inesperados, que não foram tratados especificamente, serão tratados aqui, e retornaremos uma mensagem genérica de erro.
