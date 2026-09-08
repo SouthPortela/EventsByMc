@@ -15,11 +15,7 @@ import java.net.HttpURLConnection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * Equivalente ao antigo @RestControllerAdvice: envolve o handler de verdade (aqui, o
- * Router) num try/catch e traduz cada exceção pro mesmo status HTTP + corpo JSON
- * (ErroRespostaDTO) que já existia.
- */
+//Aqui vamos tratar as exceções que podem ocorrer na aplicação, e retornar uma resposta padronizada para o front-end.
 public class ManipuladorGlobalDeExcessoes implements HttpHandler {
 
     private static final Logger log = Logger.getLogger(ManipuladorGlobalDeExcessoes.class.getName());
@@ -44,10 +40,13 @@ public class ManipuladorGlobalDeExcessoes implements HttpHandler {
             HttpRespostas.enviarErro(exchange, HttpURLConnection.HTTP_FORBIDDEN, exception.getMessage(), objectMapper);
         } catch (IllegalArgumentException exception) {
             HttpRespostas.enviarErro(exchange, HttpURLConnection.HTTP_BAD_REQUEST, exception.getMessage(), objectMapper);
+        //rota que não bate com nenhum endpoint mapeado sem isso iria cair no handler genérico e virava 500 em vez de 404.
         } catch (RecursoNaoEncontradoException exception) {
             HttpRespostas.enviarErro(exchange, HttpURLConnection.HTTP_NOT_FOUND, exception.getMessage(), objectMapper);
+        //acontece quando alguém acessa uma rota existente com o método HTTP errado (ex: GET em vez de POST) — sem isso caía no handler genérico e virava 500 em vez de 405.
         } catch (MetodoNaoSuportadoException exception) {
             HttpRespostas.enviarErro(exchange, HttpURLConnection.HTTP_BAD_METHOD, exception.getMessage(), objectMapper);
+        //Erros inesperados, que não foram tratados especificamente, serão tratados aqui, e retornaremos uma mensagem genérica de erro.
         } catch (Exception exception) {
             log.log(Level.SEVERE, "Erro inesperado: " + exception.getClass().getSimpleName(), exception);
             HttpRespostas.enviarErro(exchange, HttpURLConnection.HTTP_INTERNAL_ERROR,

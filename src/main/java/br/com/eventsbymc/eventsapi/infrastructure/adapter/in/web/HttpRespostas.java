@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
-/** Evita duplicar a escrita de resposta HTTP (headers + corpo) em cada handler. */
+//evita duplicar a escrita de resposta HTTP (headers + corpo) em cada handler
 public final class HttpRespostas {
 
     private HttpRespostas() {

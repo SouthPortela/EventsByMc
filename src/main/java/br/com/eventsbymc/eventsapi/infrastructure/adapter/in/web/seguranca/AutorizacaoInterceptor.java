@@ -9,12 +9,8 @@ import com.sun.net.httpserver.HttpHandler;
 import java.util.Optional;
 import java.util.Set;
 
-/**
- * Equivalente ao antigo HandlerInterceptor do Spring MVC: antes do Router chamar o handler
- * de verdade, olha se o método handle(HttpExchange) da classe concreta do handler tem
- * @RequerPerfil e, se tiver, confere se o usuário autenticado (guardado pelo
- * AutenticacaoFiltro) tem um dos perfis exigidos.
- */
+//antes do Router chamar o handler de verdade, checa se o método handle() dele tem @RequerPerfil
+//e, se tiver, confere se o usuário autenticado tem um dos perfis exigidos.
 public class AutorizacaoInterceptor {
 
     public void verificar(HttpHandler handler, HttpExchange exchange) {
@@ -22,17 +18,20 @@ public class AutorizacaoInterceptor {
         if (anotacao == null) {
             return;
         }
+        //se o handler não tiver a anotação RequerPerfil, retorna e não faz nenhuma checagem
 
         Optional<TokenClaims> claimsOptional = ContextoAutenticacao.obter();
         if (claimsOptional.isEmpty()) {
             throw new AcessoNegadoException();
         }
+        //se não houver claims na requisição, lança exceção de acesso negado
 
         Set<Perfil> perfisExigidos = Set.of(anotacao.value());
         Set<Perfil> perfisDoUsuario = claimsOptional.get().perfis();
         if (perfisDoUsuario.stream().noneMatch(perfisExigidos::contains)) {
             throw new AcessoNegadoException();
         }
+        //pra cada perfil que o usuário tem, pergunta se esse perfil está na lista exigida pela anotação — um bate e libera
     }
 
     private RequerPerfil buscarAnotacao(HttpHandler handler) {

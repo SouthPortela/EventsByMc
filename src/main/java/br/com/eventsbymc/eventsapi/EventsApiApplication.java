@@ -28,13 +28,11 @@ public final class EventsApiApplication {
         int porta = Integer.parseInt(System.getenv().getOrDefault("SERVER_PORT", "8080"));
         HttpServer server = HttpServer.create(new InetSocketAddress(porta), 0);
 
-        // Um único contexto raiz "/" recebe toda requisição — o filtro de autenticação fica
-        // registrado nele, valendo pra qualquer rota atual ou futura.
+        //um contexto raiz só, pra pegar toda requisição, com o filtro de autenticação nele
         HttpContext contextoRaiz = server.createContext("/", handlerComTratamentoDeErro);
         contextoRaiz.getFilters().add(new AutenticacaoFiltro(raiz.tokenProvider, raiz.objectMapper));
 
-        // Sem executor, HttpServer processa uma requisição de cada vez na mesma thread — um
-        // pool fixo replica o comportamento concorrente que o Tomcat do Spring Boot já tinha.
+        //sem isso o HttpServer atende uma requisição de cada vez, na mesma thread
         server.setExecutor(Executors.newFixedThreadPool(Math.max(8, Runtime.getRuntime().availableProcessors() * 2)));
         server.start();
 

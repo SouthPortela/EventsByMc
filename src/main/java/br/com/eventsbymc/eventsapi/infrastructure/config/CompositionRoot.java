@@ -14,12 +14,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
-/**
- * "Nó"/coração do projeto — o único lugar que conhece todas as classes concretas ao mesmo
- * tempo. Substitui o antigo BeansConfig (@Configuration do Spring): mesma responsabilidade,
- * sem framework — a "fiação" agora é só construtor Java comum, resolvida em tempo de
- * compilação, não por reflection em tempo de execução.
- */
+// CompositionRoot é o nó "ou o coração" do projeto: é o único lugar que conhece
+// todas as classes concretas ao mesmo tempo.
+// Em arquitetura hexagonal isso tem nome: "composition root"
+// Cada caso de uso/handler só pede uma porta (interface) no construtor, sem saber
+// qual implementação vai receber; é aqui, e só aqui, que decidimos "quando alguém
+// pedir TokenProvider, entregue um JwtTokenProviderAdapter" — e assim por diante.
 public final class CompositionRoot {
 
     public final UsuarioRepository usuarioRepository;
@@ -37,8 +37,7 @@ public final class CompositionRoot {
         this.tokenProvider = JwtTokenProviderAdapter.fromEnvironment();
         this.autenticarUsuario = new AutenticarUsuarioUseCase(usuarioRepository, codePass, tokenProvider);
 
-        // Sem Spring Boot não existe mais o auto-config que registrava o JavaTimeModule
-        // sozinho: sem isso, serializar ErroRespostaDTO (campo Instant) quebraria.
+        //sem esse module o Jackson não sabe serializar o Instant do ErroRespostaDTO
         this.objectMapper = new ObjectMapper()
                 .registerModule(new JavaTimeModule())
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);

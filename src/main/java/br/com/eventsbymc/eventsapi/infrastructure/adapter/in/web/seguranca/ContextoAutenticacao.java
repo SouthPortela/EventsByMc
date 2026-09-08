@@ -4,19 +4,14 @@ import br.com.eventsbymc.eventsapi.application.port.out.TokenClaims;
 
 import java.util.Optional;
 
-/**
- * IMPORTANTE: com.sun.net.httpserver.HttpExchange.setAttribute/getAttribute NÃO são
- * isolados por requisição — testado empiricamente: duas requisições concorrentes no mesmo
- * HttpContext pisam no valor uma da outra. Por isso usamos ThreadLocal: o HttpServer executa
- * todos os filtros + o handler de UMA MESMA exchange sequencialmente na MESMA thread do
- * executor, então ThreadLocal isola corretamente entre requisições concorrentes — desde que
- * seja sempre limpo no finally do filtro (AutenticacaoFiltro.doFilter).
- */
+//guarda o usuário autenticado da requisição atual. testei e HttpExchange.setAttribute
+//vaza entre requisições concorrentes, por isso é ThreadLocal e não isso.
 public final class ContextoAutenticacao {
 
     private static final ThreadLocal<TokenClaims> ATUAL = new ThreadLocal<>();
 
     private ContextoAutenticacao() {
+        // Construtor privado para evitar instanciação
     }
 
     public static void definir(TokenClaims claims) {

@@ -9,7 +9,7 @@ import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 
-/** Equivalente ao antigo AutenticacaoControlador — POST /auth/login. */
+//POST /auth/login
 public class AutenticacaoHandler implements HttpHandler {
 
     private final AutenticarUsuario autenticarUsuario;

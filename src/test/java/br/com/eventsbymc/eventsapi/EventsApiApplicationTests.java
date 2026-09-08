@@ -25,11 +25,8 @@ import java.util.concurrent.Executors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Substitui o antigo @SpringBootTest com contextLoads() vazio: sem "contexto" pra carregar,
- * o teste de fumaça real agora é subir o HttpServer de verdade numa porta efêmera e bater
- * nele com o HttpClient do próprio JDK.
- */
+//sem Spring não tem "contexto" pra carregar, então esse teste de fumaça sobe o HttpServer
+//de verdade numa porta livre e bate nele com o HttpClient do próprio Java.
 @EnabledIfEnvironmentVariable(named = "DB_URL", matches = ".+")
 @EnabledIfEnvironmentVariable(named = "DB_USERNAME", matches = ".+")
 @EnabledIfEnvironmentVariable(named = "DB_PASSWORD", matches = ".+")
@@ -55,9 +52,8 @@ class EventsApiApplicationTests {
         server.start();
         porta = server.getAddress().getPort();
 
-        // Cadastra e loga um usuário de teste real, pra ter um token JWT válido pra usar
-        // nos testes que precisam passar pelo AutenticacaoFiltro (ex.: 404 do Router, que só
-        // é alcançável DEPOIS do filtro liberar a requisição).
+        //cadastra e loga um usuário de teste real pra ter um token válido nos testes que
+        //precisam passar pelo AutenticacaoFiltro antes de chegar no Router
         emailDeTeste = "teste-smoke-" + UUID.randomUUID() + "@example.com";
         enviarSemAutenticacao("POST", "/usuarios",
                 "{\"nome\":\"Smoke Test\",\"email\":\"" + emailDeTeste + "\",\"senha\":\"senha1234\"}");
@@ -75,9 +71,8 @@ class EventsApiApplicationTests {
 
     @Test
     void rotaInexistenteComTokenValidoRetorna404() throws Exception {
-        // Sem token, essa mesma chamada daria 401 (o AutenticacaoFiltro bloqueia antes do
-        // Router decidir se a rota existe) — exatamente como já acontecia com o Spring
-        // antigo. Por isso o token válido aqui é necessário pra testar o 404 isoladamente.
+        //sem token essa mesma chamada dá 401, porque o filtro bloqueia antes do Router
+        //decidir se a rota existe — por isso precisa do token válido aqui
         HttpResponse<String> resposta = enviarComToken("GET", "/rota/que/nao/existe", null, tokenValido);
         assertEquals(404, resposta.statusCode());
         assertTrue(resposta.body().contains("Recurso não encontrado."));

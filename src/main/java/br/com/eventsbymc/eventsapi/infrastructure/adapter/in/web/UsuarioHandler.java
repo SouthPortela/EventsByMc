@@ -8,7 +8,7 @@ import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 
-/** Equivalente ao antigo UsuarioControlador — POST /usuarios. */
+//POST /usuarios
 public class UsuarioHandler implements HttpHandler {
 
     private final RegistrarUsuarioUseCase registrarUsuarioUseCase;
@@ -23,7 +23,7 @@ public class UsuarioHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
         UsuarioDTO usuarioDTO = objectMapper.readValue(exchange.getRequestBody(), UsuarioDTO.class);
         registrarUsuarioUseCase.registrarUsuario(usuarioDTO.getNome(), usuarioDTO.getEmail(), usuarioDTO.getSenha());
-        // Mantém o corpo em texto puro, exatamente como hoje (o frontend já espera isso).
+        //mantém o corpo em texto puro, o frontend já espera assim
         HttpRespostas.enviarTexto(exchange, HttpURLConnection.HTTP_OK, "Usuário registrado com sucesso!");
     }
 }

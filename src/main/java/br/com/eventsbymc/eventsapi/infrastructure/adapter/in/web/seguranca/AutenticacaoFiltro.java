@@ -12,11 +12,7 @@ import java.net.HttpURLConnection;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Equivalente ao antigo AutenticacaoFiltro (jakarta.servlet.Filter), agora sobre
- * com.sun.net.httpserver.Filter: registrado no único contexto raiz "/", roda antes do
- * Router pra toda requisição, exceto as rotas públicas.
- */
+//filter é uma interface do java que permite interceptar requisições e respostas HTTP em um servidor java.
 public class AutenticacaoFiltro extends Filter {
 
     private static final Set<String> ROTAS_PUBLICAS = Set.of("/usuarios", "/auth/login");
@@ -40,27 +36,29 @@ public class AutenticacaoFiltro extends Filter {
         if (ROTAS_PUBLICAS.contains(caminho)) {
             chain.doFilter(exchange);
             return;
+            //se a rota for pública, o filtro não faz nada e deixa a requisição passar para o próximo filtro ou para o recurso solicitado.
         }
-
         List<String> cabecalhos = exchange.getRequestHeaders().get("Authorization");
         String cabecalhoAutorizacao = (cabecalhos == null || cabecalhos.isEmpty()) ? null : cabecalhos.get(0);
         if (cabecalhoAutorizacao == null || !cabecalhoAutorizacao.startsWith("Bearer ")) {
             HttpRespostas.enviarErro(exchange, HttpURLConnection.HTTP_UNAUTHORIZED,
                     "Token de autenticação ausente ou inválido.", objectMapper);
             return;
+            //sistema não pode exigir tokem, pois é nesta rota que faremos a autenticação
         }
-
         String token = cabecalhoAutorizacao.substring("Bearer ".length());
+        //por padrão bearer é utilizado como prefixo para tokens de autenticação.
+        //aqui ele é cortado sobrando só o token puro
         try {
             TokenClaims claims = tokenProvider.validarToken(token);
             ContextoAutenticacao.definir(claims);
+            //aqui as claims são validadas e guardadas na thread, pois o filter roda antes do handler.
             chain.doFilter(exchange);
         } catch (RuntimeException exception) {
             HttpRespostas.enviarErro(exchange, HttpURLConnection.HTTP_UNAUTHORIZED,
                     "Token de autenticação inválido.", objectMapper);
         } finally {
-            // Essencial: sem isso, a claim de um usuário pode vazar pra próxima requisição
-            // que reusar essa mesma thread do pool.
+            //limpa a claim guardada, senão pode vazar pra próxima requisição que cair na mesma thread do pool.
             ContextoAutenticacao.limpar();
         }
     }
