@@ -1,56 +1,57 @@
 package br.com.eventsbymc.eventsapi.infrastructure.adapter.in.web;
 
 import br.com.eventsbymc.eventsapi.application.exception.AcessoNegadoException;
+import br.com.eventsbymc.eventsapi.application.exception.MetodoNaoSuportadoException;
+import br.com.eventsbymc.eventsapi.application.exception.RecursoNaoEncontradoException;
 import br.com.eventsbymc.eventsapi.application.exception.TokenInvalidoException;
 import br.com.eventsbymc.eventsapi.domain.model.exception.CredenciaisInvalidasException;
 import br.com.eventsbymc.eventsapi.domain.model.exception.EmailJaCadastradoException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.HttpRequestMethodNotSupportedException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.servlet.resource.NoResourceFoundException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
 
-@RestControllerAdvice
-//Aqui vamos tratar as exceções que podem ocorrer na aplicação, e retornar uma resposta padronizada para o front-end.
-public class ManipuladorGlobalDeExcessoes {
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-    private static final Logger log = LoggerFactory.getLogger(ManipuladorGlobalDeExcessoes.class);
+/**
+ * Equivalente ao antigo @RestControllerAdvice: envolve o handler de verdade (aqui, o
+ * Router) num try/catch e traduz cada exceção pro mesmo status HTTP + corpo JSON
+ * (ErroRespostaDTO) que já existia.
+ */
+public class ManipuladorGlobalDeExcessoes implements HttpHandler {
 
-    @ExceptionHandler(EmailJaCadastradoException.class)
-    public ResponseEntity<ErroRespostaDTO> tratarEmailJaCadastrado(EmailJaCadastradoException exception) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(ErroRespostaDTO.criar(exception.getMessage()));
+    private static final Logger log = Logger.getLogger(ManipuladorGlobalDeExcessoes.class.getName());
+
+    private final HttpHandler delegate;
+    private final ObjectMapper objectMapper;
+
+    public ManipuladorGlobalDeExcessoes(HttpHandler delegate, ObjectMapper objectMapper) {
+        this.delegate = delegate;
+        this.objectMapper = objectMapper;
     }
 
-    @ExceptionHandler({CredenciaisInvalidasException.class, TokenInvalidoException.class})
-    public ResponseEntity<ErroRespostaDTO> tratarCredenciaisInvalidas(RuntimeException exception) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ErroRespostaDTO.criar(exception.getMessage()));
-    }
-
-    @ExceptionHandler(AcessoNegadoException.class)
-    public ResponseEntity<ErroRespostaDTO> tratarAcessoNegado(AcessoNegadoException exception) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ErroRespostaDTO.criar(exception.getMessage()));
-    }
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErroRespostaDTO> tratarArgumentoInvalido(IllegalArgumentException exception) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ErroRespostaDTO.criar(exception.getMessage()));
-    }
-    @ExceptionHandler(NoResourceFoundException.class)
-    //rota que não bate com nenhum endpoint mapeado sem isso iria cair no handler genérico e virava 500 em vez de 404.
-    public ResponseEntity<ErroRespostaDTO> tratarRotaNaoEncontrada(NoResourceFoundException exception) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErroRespostaDTO.criar("Recurso não encontrado."));
-    }
-    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    //acontece quando alguém acessa uma rota existente com o método HTTP errado (ex: GET em vez de POST) — sem isso caía no handler genérico e virava 500 em vez de 405.
-    public ResponseEntity<ErroRespostaDTO> tratarMetodoNaoSuportado(HttpRequestMethodNotSupportedException exception) {
-        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(ErroRespostaDTO.criar("Método HTTP não permitido para essa rota."));
-    }
-    @ExceptionHandler(Exception.class)
-    //Erros inesperados, que não foram tratados especificamente, serão tratados aqui, e retornaremos uma mensagem genérica de erro.
-    public ResponseEntity<ErroRespostaDTO> tratarErroInesperado(Exception exception) {
-        log.error("Erro inesperado:  {}", exception.getClass().getSimpleName(), exception);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErroRespostaDTO.criar("Ocorreu um erro inesperado. Por favor, tente novamente mais tarde."));
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+        try {
+            delegate.handle(exchange);
+        } catch (EmailJaCadastradoException exception) {
+            HttpRespostas.enviarErro(exchange, HttpURLConnection.HTTP_CONFLICT, exception.getMessage(), objectMapper);
+        } catch (CredenciaisInvalidasException | TokenInvalidoException exception) {
+            HttpRespostas.enviarErro(exchange, HttpURLConnection.HTTP_UNAUTHORIZED, exception.getMessage(), objectMapper);
+        } catch (AcessoNegadoException exception) {
+            HttpRespostas.enviarErro(exchange, HttpURLConnection.HTTP_FORBIDDEN, exception.getMessage(), objectMapper);
+        } catch (IllegalArgumentException exception) {
+            HttpRespostas.enviarErro(exchange, HttpURLConnection.HTTP_BAD_REQUEST, exception.getMessage(), objectMapper);
+        } catch (RecursoNaoEncontradoException exception) {
+            HttpRespostas.enviarErro(exchange, HttpURLConnection.HTTP_NOT_FOUND, exception.getMessage(), objectMapper);
+        } catch (MetodoNaoSuportadoException exception) {
+            HttpRespostas.enviarErro(exchange, HttpURLConnection.HTTP_BAD_METHOD, exception.getMessage(), objectMapper);
+        } catch (Exception exception) {
+            log.log(Level.SEVERE, "Erro inesperado: " + exception.getClass().getSimpleName(), exception);
+            HttpRespostas.enviarErro(exchange, HttpURLConnection.HTTP_INTERNAL_ERROR,
+                    "Ocorreu um erro inesperado. Por favor, tente novamente mais tarde.", objectMapper);
+        }
     }
 }
