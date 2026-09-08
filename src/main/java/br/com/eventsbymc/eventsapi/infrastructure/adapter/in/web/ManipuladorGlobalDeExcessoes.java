@@ -15,7 +15,7 @@ import java.net.HttpURLConnection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-//Aqui vamos tratar as exceções que podem ocorrer na aplicação, e retornar uma resposta padronizada para o front-end.
+//Aqui vamos tratar as exceções que podem ocorrer, e retornar uma resposta padronizada para o front-end.
 public class ManipuladorGlobalDeExcessoes implements HttpHandler {
 
     private static final Logger log = Logger.getLogger(ManipuladorGlobalDeExcessoes.class.getName());

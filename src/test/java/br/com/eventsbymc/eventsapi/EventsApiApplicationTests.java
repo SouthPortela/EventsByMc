@@ -25,7 +25,7 @@ import java.util.concurrent.Executors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-//sem Spring não tem "contexto" pra carregar, então esse teste de fumaça sobe o HttpServer
+//sem Spring não tem "contexto" pra carregar, então esse teste sobe o HttpServer
 //de verdade numa porta livre e bate nele com o HttpClient do próprio Java.
 @EnabledIfEnvironmentVariable(named = "DB_URL", matches = ".+")
 @EnabledIfEnvironmentVariable(named = "DB_USERNAME", matches = ".+")

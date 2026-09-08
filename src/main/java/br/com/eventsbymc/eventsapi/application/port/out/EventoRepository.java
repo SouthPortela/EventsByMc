@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Porta de saída para a persistência do agregado Evento. */
+// Porta de saída para a persistência do agregado Evento. 
 public interface EventoRepository {
     Evento salvar(Evento evento);
     Optional<Evento> buscarPorId(UUID id);
