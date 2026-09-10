@@ -4,7 +4,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-/** Adaptador JDBC sem acoplamento com frameworks. */
+// Adaptador JDBC sem acoplamento com frameworks. 
 public final class JdbcConnectionFactory {
     private final String url;
     private final String username;

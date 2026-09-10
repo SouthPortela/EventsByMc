@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Adaptador JDBC para a persistência de usuários e seus perfis. */
+// Adaptador JDBC para a persistência de usuários e seus perfis.
 public final class JdbcUsuarioRepository implements UsuarioRepository {
     private static final String SELECT_USUARIO = """
             SELECT id, nome, email, senha_hash

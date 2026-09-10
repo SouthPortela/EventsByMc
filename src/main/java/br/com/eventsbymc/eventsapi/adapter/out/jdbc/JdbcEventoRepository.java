@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Implementação PostgreSQL da porta de persistência de eventos. */
+// Implementação PostgreSQL da porta de persistência de eventos. 
 public final class JdbcEventoRepository implements EventoRepository {
     private static final String SELECT_EVENTO = """
             SELECT e.id, e.titulo, e.descricao, e.inicio, e.fim, e.local, e.estado,
