@@ -2,6 +2,11 @@ package br.com.eventsbymc.eventsapi.infrastructure.config;
 
 import br.com.eventsbymc.eventsapi.adapter.out.jdbc.JdbcConnectionFactory;
 import br.com.eventsbymc.eventsapi.adapter.out.jdbc.JdbcUsuarioRepository;
+import br.com.eventsbymc.eventsapi.adapter.out.jdbc.JdbcEventoRepository;
+import br.com.eventsbymc.eventsapi.application.port.in.ConsultarMinhaConta;
+import br.com.eventsbymc.eventsapi.application.port.in.OperacoesEvento;
+import br.com.eventsbymc.eventsapi.application.usecase.ConsultarMinhaContaUseCase;
+import br.com.eventsbymc.eventsapi.application.usecase.EventosUseCase;
 import br.com.eventsbymc.eventsapi.application.port.in.AutenticarUsuario;
 import br.com.eventsbymc.eventsapi.application.port.out.CodePass;
 import br.com.eventsbymc.eventsapi.application.port.out.TokenProvider;
@@ -28,10 +33,19 @@ public final class CompositionRoot {
     public final TokenProvider tokenProvider;
     public final AutenticarUsuario autenticarUsuario;
     public final ObjectMapper objectMapper;
+    public final ConsultarMinhaConta consultarMinhaConta;
+    public final OperacoesEvento eventos;
+    public final br.com.eventsbymc.eventsapi.application.port.in.OperacoesPresenca presencas;
 
     private CompositionRoot() {
         JdbcConnectionFactory jdbcConnectionFactory = JdbcConnectionFactory.fromEnvironment();
         this.usuarioRepository = new JdbcUsuarioRepository(jdbcConnectionFactory);
+        this.consultarMinhaConta = new ConsultarMinhaContaUseCase(usuarioRepository);
+        this.eventos = new EventosUseCase(new JdbcEventoRepository(jdbcConnectionFactory), usuarioRepository);
+        this.presencas = new br.com.eventsbymc.eventsapi.application.usecase.PresencaUseCase(
+                new br.com.eventsbymc.eventsapi.adapter.out.jdbc.JdbcPresencaRepository(jdbcConnectionFactory),
+                usuarioRepository, new JdbcEventoRepository(jdbcConnectionFactory),
+                new br.com.eventsbymc.eventsapi.infrastructure.adapter.CodigoPresencaSeguro());
         this.codePass = new BcryptCodePassAdapter();
         this.registrarUsuarioUseCase = new RegistrarUsuarioUseCase(usuarioRepository, codePass);
         this.tokenProvider = JwtTokenProviderAdapter.fromEnvironment();

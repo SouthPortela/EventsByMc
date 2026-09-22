@@ -62,11 +62,24 @@ public final class JdbcEventoRepository implements EventoRepository {
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (!resultSet.next()) return Optional.empty();
                 Evento evento = mapearEvento(connection, resultSet);
-                carregarAtividades(connection, evento);
-                return Optional.of(evento);
+                return Optional.of(carregarAtividades(connection, evento));
             }
         } catch (SQLException exception) {
             throw new IllegalStateException("Não foi possível consultar o evento.", exception);
+        }
+    }
+
+    @Override
+    public boolean alterarEstado(UUID id, EstadoEvento esperado, EstadoEvento destino) {
+        String sql = "UPDATE eventos SET estado = ? WHERE id = ? AND estado = ?";
+        try (Connection connection = connectionFactory.abrirConexao();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, destino.name());
+            statement.setObject(2, id);
+            statement.setString(3, esperado.name());
+            return statement.executeUpdate() == 1;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Não foi possível alterar o estado do evento.", exception);
         }
     }
 
@@ -78,8 +91,7 @@ public final class JdbcEventoRepository implements EventoRepository {
              ResultSet resultSet = statement.executeQuery()) {
             while (resultSet.next()) {
                 Evento evento = mapearEvento(connection, resultSet);
-                carregarAtividades(connection, evento);
-                eventos.add(evento);
+                eventos.add(carregarAtividades(connection, evento));
             }
             return eventos;
         } catch (SQLException exception) {
@@ -150,13 +162,16 @@ public final class JdbcEventoRepository implements EventoRepository {
         return perfis;
     }
 
-    private void carregarAtividades(Connection connection, Evento evento) throws SQLException {
+    private Evento carregarAtividades(Connection connection, Evento evento) throws SQLException {
+        List<Atividade> atividades = new ArrayList<>();
         try (PreparedStatement statement = connection.prepareStatement("SELECT id, titulo, descricao, inicio, fim, local, capacidade FROM atividades WHERE evento_id = ? ORDER BY inicio NULLS LAST, titulo")) {
             statement.setObject(1, evento.getId());
             try (ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) evento.adicionarAtividade(Atividade.reconstituir(resultSet.getObject("id", UUID.class), resultSet.getString("titulo"), resultSet.getString("descricao"), localDateTime(resultSet, "inicio"), localDateTime(resultSet, "fim"), resultSet.getString("local"), (Integer) resultSet.getObject("capacidade")));
+                while (resultSet.next()) atividades.add(Atividade.reconstituir(resultSet.getObject("id", UUID.class), resultSet.getString("titulo"), resultSet.getString("descricao"), localDateTime(resultSet, "inicio"), localDateTime(resultSet, "fim"), resultSet.getString("local"), (Integer) resultSet.getObject("capacidade")));
             }
         }
+        return Evento.reconstituir(evento.getId(), evento.getTitulo(), evento.getDescricao(), evento.getOrganizador(),
+                evento.getInicio(), evento.getFim(), evento.getLocal(), evento.getEstado(), atividades);
     }
 
     private static Timestamp timestamp(java.time.LocalDateTime value) { return value == null ? null : Timestamp.valueOf(value); }

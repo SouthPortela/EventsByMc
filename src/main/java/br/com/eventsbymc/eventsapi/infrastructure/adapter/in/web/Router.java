@@ -9,6 +9,7 @@ import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 //guarda as rotas (método + caminho -> handler) e decide se existe rota (senão 404),
 //se o método bate (senão 405), e chama o AutorizacaoInterceptor antes de delegar de fato.
@@ -32,7 +33,7 @@ public final class Router implements HttpHandler {
 
         boolean caminhoExiste = false;
         for (Rota rota : rotas) {
-            if (!rota.caminho().equals(caminho)) {
+            if (!corresponde(rota.caminho(), caminho)) {
                 continue;
             }
             caminhoExiste = true;
@@ -47,5 +48,29 @@ public final class Router implements HttpHandler {
             throw new MetodoNaoSuportadoException();
         }
         throw new RecursoNaoEncontradoException();
+    }
+
+    public static boolean corresponde(String modelo, String caminho) {
+        String[] esperado = modelo.split("/", -1);
+        String[] recebido = caminho.split("/", -1);
+        if (esperado.length != recebido.length) return false;
+        for (int i = 0; i < esperado.length; i++) {
+            if (esperado[i].startsWith("{") && esperado[i].endsWith("}")) {
+                if (recebido[i].isBlank()) return false;
+            } else if (!esperado[i].equals(recebido[i])) return false;
+        }
+        return true;
+    }
+
+    public static UUID uuidEvento(HttpExchange exchange) {
+        return uuidRecurso(exchange);
+    }
+
+    public static UUID uuidRecurso(HttpExchange exchange) {
+        String[] partes = exchange.getRequestURI().getPath().split("/", -1);
+        if (partes.length < 3 || !partes[2].matches("(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) {
+            throw new IllegalArgumentException("Identificador do recurso inválido.");
+        }
+        return UUID.fromString(partes[2]);
     }
 }
