@@ -1,6 +1,7 @@
 package br.com.eventsbymc.eventsapi.infrastructure.adapter.in.web;
 
 import br.com.eventsbymc.eventsapi.application.usecase.RegistrarUsuarioUseCase;
+import br.com.eventsbymc.eventsapi.domain.model.Perfil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -22,7 +23,14 @@ public class UsuarioHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         UsuarioDTO usuarioDTO = objectMapper.readValue(exchange.getRequestBody(), UsuarioDTO.class);
-        registrarUsuarioUseCase.registrarUsuario(usuarioDTO.getNome(), usuarioDTO.getEmail(), usuarioDTO.getSenha());
+        Perfil perfil;
+        try {
+            perfil = usuarioDTO.getPerfil() == null
+                    ? Perfil.PARTICIPANTE : Perfil.valueOf(usuarioDTO.getPerfil());
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("Perfil de cadastro inválido.");
+        }
+        registrarUsuarioUseCase.registrarUsuario(usuarioDTO.getNome(), usuarioDTO.getEmail(), usuarioDTO.getSenha(), perfil);
         //mantém o corpo em texto puro, o frontend já espera assim
         HttpRespostas.enviarTexto(exchange, HttpURLConnection.HTTP_OK, "Usuário registrado com sucesso!");
     }

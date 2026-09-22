@@ -23,8 +23,7 @@ function destinoPorPerfil(): string {
   if (auth.perfil === 'ADMINISTRADOR') return '/admin'
   if (auth.perfil === 'ORGANIZADOR') return '/organizador'
   if (auth.perfil === 'PARTICIPANTE') return '/participante'
-  // VISITANTE (ex.: quem acabou de se cadastrar e ainda não se inscreveu em nada)
-  // não tem painel próprio — /participante exige nível PARTICIPANTE e bloquearia.
+  // Contas antigas devem ser migradas; visitante é apenas a navegação sem sessão.
   return '/conta'
 }
 

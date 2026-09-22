@@ -8,17 +8,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class UsuarioTest {
     @Test
-    void possuiPerfilVisitanteAoSerCriado() {
+    void possuiPerfilParticipanteAoSerCriado() {
         Usuario usuario = new Usuario(new Pessoa("Ana", "ana@example.com"));
 
-        assertTrue(usuario.possuiPerfil(Perfil.VISITANTE));
+        assertTrue(usuario.possuiPerfil(Perfil.PARTICIPANTE));
+        assertFalse(usuario.possuiPerfil(Perfil.VISITANTE));
     }
 
     @Test
     void naoPermiteRemoverPerfilBasico() {
         Usuario usuario = new Usuario(new Pessoa("Ana", "ana@example.com"));
 
-        assertThrows(IllegalArgumentException.class, () -> usuario.removerPerfil(Perfil.VISITANTE));
+        assertThrows(IllegalArgumentException.class, () -> usuario.removerPerfil(Perfil.PARTICIPANTE));
+        assertThrows(IllegalArgumentException.class, () -> usuario.adicionarPerfil(Perfil.VISITANTE));
         assertFalse(usuario.possuiPerfil(Perfil.ORGANIZADOR));
     }
 }

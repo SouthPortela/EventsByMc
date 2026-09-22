@@ -66,9 +66,11 @@ O [guia do webapp](../api/integracao-webapp.md) apresenta a consulta
 A rota usa o ID do token validado e consulta os dados atuais no banco. Não aceita
 um ID escolhido pelo navegador e não retorna o hash de senha.
 
-Nesta consulta basta estar autenticado, inclusive para contas que ainda possuem
-somente `VISITANTE` no modelo atual. Antes de integrar os demais painéis, alinhar
-os perfis do frontend e backend e revisar o perfil inicial do cadastro.
+Nesta consulta basta estar autenticado. `VISITANTE` representa quem navega sem
+sessão, sem registro em `usuario_perfis`. O cadastro público cria PARTICIPANTE
+por padrão ou ORGANIZADOR mediante escolha explícita. A migração V3 converte
+contas antigas com VISITANTE. ADMINISTRADOR só é concedido por operação
+controlada no banco, conforme o [guia](../../db/README.md).
 
 O filtro libera as rotas públicas por método e caminho. `GET /eventos` é público,
 mas `POST /eventos` exige JWT e autorização. Respostas privadas usam `no-store`.

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { apiRequest, configurarHttpClient } from '../shared/services/httpClient'
 import { consultarMinhaConta } from '../features/events/services/contaService'
+import { cadastrar } from '../features/auth/services/authService'
 
 const sair = vi.fn()
 let token: string | null
@@ -26,7 +27,7 @@ describe('cliente HTTP autenticado', () => {
       usuarioId: 'id',
       nome: 'Teste',
       email: 'teste@example.test',
-      perfis: ['VISITANTE'],
+      perfis: ['PARTICIPANTE'],
     }
     const mock = responder(Response.json(conta))
     expect(await consultarMinhaConta()).toEqual(conta)
@@ -80,6 +81,20 @@ describe('cliente HTTP autenticado', () => {
     expect(await apiRequest('/usuarios', { method: 'POST' })).toBe('Cadastro realizado')
     responder(new Response(null, { status: 204 }))
     expect(await apiRequest('/teste')).toBeUndefined()
+  })
+  it('envia o perfil de organizador escolhido no cadastro', async () => {
+    const mock = responder(
+      new Response('Cadastro realizado', { headers: { 'Content-Type': 'text/plain' } }),
+    )
+    await cadastrar('Maria Silva', 'maria@example.test', 'segura123', 'ORGANIZADOR')
+    expect(mock.mock.calls[0]?.[0]).toBe('/api/usuarios')
+    expect(JSON.parse(mock.mock.calls[0]?.[1].body)).toEqual({
+      nome: 'Maria Silva',
+      email: 'maria@example.test',
+      senha: 'segura123',
+      perfil: 'ORGANIZADOR',
+    })
+    expect(mock.mock.calls[0]?.[1].headers.has('Authorization')).toBe(false)
   })
   it('não trata página HTML como dados da API', async () => {
     responder(new Response('<html></html>', { headers: { 'Content-Type': 'text/html' } }))

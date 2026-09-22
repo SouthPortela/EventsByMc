@@ -50,13 +50,13 @@ class PresencaUseCaseTest {
         assertEquals("Palestra", repo.atividade.getTitulo());
         assertThrows(IllegalArgumentException.class, () -> caso.criarAtividade(dono.getId(), e.getId(),
                 new DadosPresenca.NovaAtividade("Outra", "", inicio.minusHours(1), inicio.plusHours(1), "Sala")));
-        var visitante = RepositoriosEmMemoria.usuario(usuarios, Perfil.VISITANTE);
-        assertThrows(AcessoNegadoException.class, () -> caso.listarAtividades(visitante.getId(), e.getId()));
-        assertThrows(AcessoNegadoException.class, () -> caso.criarAtividade(visitante.getId(), e.getId(), dados));
+        var participante = RepositoriosEmMemoria.usuario(usuarios, Perfil.PARTICIPANTE);
+        assertThrows(AcessoNegadoException.class, () -> caso.listarAtividades(participante.getId(), e.getId()));
+        assertThrows(AcessoNegadoException.class, () -> caso.criarAtividade(participante.getId(), e.getId(), dados));
     }
-    @Test void visitanteAutenticadoPodeSolicitarInscricao() {
-        var visitante = RepositoriosEmMemoria.usuario(usuarios, Perfil.VISITANTE);
-        assertEquals("ATIVA", caso.inscrever(visitante.getId(), UUID.randomUUID()).estado());
+    @Test void participantePodeSolicitarInscricao() {
+        var participante = RepositoriosEmMemoria.usuario(usuarios, Perfil.PARTICIPANTE);
+        assertEquals("ATIVA", caso.inscrever(participante.getId(), UUID.randomUUID()).estado());
         assertThrows(TokenInvalidoException.class, () -> caso.inscrever(UUID.randomUUID(), UUID.randomUUID()));
     }
     @Test void validadeNaoIncluiInstanteDaExpiracaoENaoAceitaRevogacao() {

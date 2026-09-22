@@ -23,7 +23,7 @@ test('inicialização completa, constraints e consultas do adaptador de presenç
   const db = new PGlite()
   try {
     await db.exec(await lerEntrada(new URL('db/inicializar.sql', raiz)))
-    assert.equal((await db.query('SELECT count(*)::int AS total FROM versoes_schema')).rows[0].total, 2)
+    assert.equal((await db.query('SELECT count(*)::int AS total FROM versoes_schema')).rows[0].total, 3)
     const usuario = randomUUID(), outro = randomUUID(), evento = randomUUID(), evento2 = randomUUID()
     const atividade = randomUUID(), atividade2 = randomUUID(), inscricao = randomUUID(), chamada = randomUUID()
     await db.query("INSERT INTO usuarios(id,nome,email,senha_hash) VALUES ($1,'Teste','teste@example.test','hash-teste'),($2,'Outro','outro@example.test','hash-teste')", [usuario, outro])
@@ -79,5 +79,21 @@ test('atualização V1 → V2 preserva registros e não reaplica silenciosamente
     await assert.rejects(db.exec(await lerEntrada(new URL('db/atualizar-v2.sql', raiz))))
     await db.exec('ROLLBACK')
     assert.equal((await db.query('SELECT count(*)::int AS total FROM versoes_schema')).rows[0].total, 2)
+  } finally { await db.close() }
+})
+
+test('V3 transforma visitantes persistidos em participantes e preserva organizadores/admins', async () => {
+  const db = new PGlite()
+  try {
+    await db.exec(await readFile(new URL('src/main/resources/db/migration/V1__cria_modelo_inicial.sql', raiz), 'utf8'))
+    const participante = randomUUID(), organizador = randomUUID(), admin = randomUUID()
+    await db.query("INSERT INTO usuarios(id,nome,email) VALUES ($1,'A','a@example.test'),($2,'B','b@example.test'),($3,'C','c@example.test')", [participante, organizador, admin])
+    await db.query("INSERT INTO usuario_perfis(usuario_id,perfil) VALUES ($1,'VISITANTE'),($2,'VISITANTE'),($2,'ORGANIZADOR'),($3,'ADMINISTRADOR')", [participante, organizador, admin])
+    await db.exec(await lerEntrada(new URL('db/atualizar-v2.sql', raiz)))
+    await db.exec(await lerEntrada(new URL('db/atualizar-v3.sql', raiz)))
+    assert.deepEqual((await db.query('SELECT usuario_id,perfil FROM usuario_perfis ORDER BY perfil')).rows,
+      [{ usuario_id: admin, perfil: 'ADMINISTRADOR' }, { usuario_id: organizador, perfil: 'ORGANIZADOR' }, { usuario_id: participante, perfil: 'PARTICIPANTE' }])
+    await assert.rejects(db.query("INSERT INTO usuario_perfis(usuario_id,perfil) VALUES ($1,'VISITANTE')", [participante]), { code: '23514' })
+    assert.equal((await db.query('SELECT max(versao) AS versao FROM versoes_schema')).rows[0].versao, 3)
   } finally { await db.close() }
 })

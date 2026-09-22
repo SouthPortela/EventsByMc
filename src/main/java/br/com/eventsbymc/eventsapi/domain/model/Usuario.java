@@ -13,11 +13,15 @@ public class Usuario {
     private final Set<Perfil> perfis;
 
     public Usuario(Pessoa pessoa) {
-        this(UUID.randomUUID(), pessoa, null, EnumSet.of(Perfil.VISITANTE));
+        this(UUID.randomUUID(), pessoa, null, EnumSet.of(Perfil.PARTICIPANTE));
     }
 
     public Usuario(Pessoa pessoa, String senhaHash) {
-        this(UUID.randomUUID(), pessoa, senhaHash, EnumSet.of(Perfil.VISITANTE));
+        this(pessoa, senhaHash, Perfil.PARTICIPANTE);
+    }
+
+    public Usuario(Pessoa pessoa, String senhaHash, Perfil perfil) {
+        this(UUID.randomUUID(), pessoa, senhaHash, EnumSet.of(perfil));
     }
 
     private Usuario(UUID id, Pessoa pessoa, String senhaHash, Set<Perfil> perfis) {
@@ -30,7 +34,10 @@ public class Usuario {
         this.id = id;
         this.pessoa = pessoa;
         this.senhaHash = senhaHash;
-        this.perfis = perfis.isEmpty() ? EnumSet.of(Perfil.VISITANTE) : EnumSet.copyOf(perfis);
+        if (perfis.isEmpty() || perfis.contains(Perfil.VISITANTE)) {
+            throw new IllegalArgumentException("Conta cadastrada exige perfil autenticado.");
+        }
+        this.perfis = EnumSet.copyOf(perfis);
     }
 
     public static Usuario reconstituir(UUID id, Pessoa pessoa, String senhaHash, Set<Perfil> perfis) {
@@ -41,8 +48,8 @@ public class Usuario {
     }
 
     public void adicionarPerfil(Perfil perfil) {
-        if (perfil == null) {
-            throw new IllegalArgumentException("Perfil é obrigatório.");
+        if (perfil == null || perfil == Perfil.VISITANTE) {
+            throw new IllegalArgumentException("Perfil de conta inválido.");
         }
 
         perfis.add(perfil);
@@ -52,8 +59,8 @@ public class Usuario {
         if (perfil == null) {
             throw new IllegalArgumentException("Perfil é obrigatório.");
         }
-        if (perfil == Perfil.VISITANTE) {
-            throw new IllegalArgumentException("O perfil VISITANTE é obrigatório.");
+        if (perfis.contains(perfil) && perfis.size() == 1) {
+            throw new IllegalArgumentException("A conta deve manter um perfil autenticado.");
         }
         perfis.remove(perfil);
     }

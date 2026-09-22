@@ -9,6 +9,7 @@ describe('validarCadastro', () => {
         email: 'maria@exemplo.com',
         senha: 'segura123',
         confirmacaoSenha: 'segura123',
+        perfil: 'PARTICIPANTE',
         aceitouTermos: true,
       }),
     ).toEqual({})
@@ -20,10 +21,24 @@ describe('validarCadastro', () => {
       email: 'maria@exemplo.com',
       senha: 'segura123',
       confirmacaoSenha: 'outraSenha',
+      perfil: 'ORGANIZADOR',
       aceitouTermos: false,
     })
 
     expect(erros.confirmacaoSenha).toBe('As senhas não conferem.')
     expect(erros.aceitouTermos).toBe('Você precisa aceitar os termos para continuar.')
+  })
+  it('rejeita um perfil alterado fora das opções de cadastro', () => {
+    const dados = {
+      nome: 'Maria Silva',
+      email: 'maria@exemplo.com',
+      senha: 'segura123',
+      confirmacaoSenha: 'segura123',
+      aceitouTermos: true,
+      perfil: 'ADMINISTRADOR',
+    }
+    expect(validarCadastro(dados as Parameters<typeof validarCadastro>[0]).perfil).toBe(
+      'Escolha participante ou organizador.',
+    )
   })
 })
