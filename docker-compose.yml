@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres-db:
     image: postgres:16
@@ -12,15 +10,16 @@ services:
     ports:
       # Porta só acessível de dentro da própria máquina (127.0.0.1) — em produção,
       # a internet não deve conseguir se conectar direto no Postgres.
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
-      - ./src/main/resources/db/migration:/docker-entrypoint-initdb.d
+      - ./src/main/resources/db/migration:/docker-entrypoint-initdb.d:ro
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${DB_USERNAME} -d $${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 10s
 
   app:
     build: .
@@ -37,7 +36,19 @@ services:
       JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES}
     ports:
       # Só acessível localmente também — quem expõe pra internet é o Nginx (proxy reverso).
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:${API_PORT:-8080}:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: events_web
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      # Este é o único serviço exposto para a rede. O Nginx entrega a SPA e
+      # encaminha /api para o Java pela rede interna do Docker Compose.
+      - "${WEB_PORT:-80}:80"
 
 volumes:
   pg_data:

@@ -2,6 +2,7 @@ package br.com.eventsbymc.eventsapi.domain.model;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.List;
 
 public class Evento {
 
@@ -17,21 +18,33 @@ public class Evento {
     private EstadoEvento estado;
 
     public Evento(String titulo, String descricao, Usuario organizador) {
-        this(UUID.randomUUID(), titulo, descricao, organizador, null, null, null, EstadoEvento.RASCUNHO);
+        this(UUID.randomUUID(), titulo, descricao, organizador, null, null, null, EstadoEvento.RASCUNHO, false);
     }
 
     public Evento(String titulo, String descricao, Usuario organizador, LocalDateTime inicio,
                   LocalDateTime fim, String local) {
-        this(UUID.randomUUID(), titulo, descricao, organizador, inicio, fim, local, EstadoEvento.RASCUNHO);
+        this(UUID.randomUUID(), titulo, descricao, organizador, inicio, fim, local, EstadoEvento.RASCUNHO, false);
     }
 
     public static Evento reconstituir(UUID id, String titulo, String descricao, Usuario organizador,
                                       LocalDateTime inicio, LocalDateTime fim, String local, EstadoEvento estado) {
-        return new Evento(id, titulo, descricao, organizador, inicio, fim, local, estado);
+        return new Evento(id, titulo, descricao, organizador, inicio, fim, local, estado, true);
+    }
+
+    public static Evento reconstituir(UUID id, String titulo, String descricao, Usuario organizador,
+                                      LocalDateTime inicio, LocalDateTime fim, String local, EstadoEvento estado,
+                                      List<Atividade> atividades) {
+        Evento evento = reconstituir(id, titulo, descricao, organizador, inicio, fim, local, estado);
+        // Reconstituir registros não é adicionar novas atividades a um evento encerrado.
+        for (Atividade atividade : List.copyOf(atividades)) {
+            evento.validarAtividadeNoPeriodo(atividade);
+            evento.programacao.adicionarAtividade(atividade);
+        }
+        return evento;
     }
 
     private Evento(UUID id, String titulo, String descricao, Usuario organizador, LocalDateTime inicio,
-                   LocalDateTime fim, String local, EstadoEvento estado) {
+                   LocalDateTime fim, String local, EstadoEvento estado, boolean reconstituindo) {
 
         if (id == null) throw new IllegalArgumentException("Identificador do evento é obrigatório.");
         if (titulo == null || titulo.isBlank()) {
@@ -42,7 +55,8 @@ public class Evento {
             throw new IllegalArgumentException("Organizador é obrigatório.");
         }
 
-        if (!organizador.possuiPerfil(Perfil.ORGANIZADOR)) {
+        // Revogar um perfil não torna ilegível um evento já persistido.
+        if (!reconstituindo && !organizador.possuiPerfil(Perfil.ORGANIZADOR) && !organizador.possuiPerfil(Perfil.ADMINISTRADOR)) {
             throw new IllegalArgumentException(
                     "O usuário precisa possuir o perfil ORGANIZADOR."
             );
@@ -69,6 +83,10 @@ public class Evento {
             throw new IllegalStateException(
                     "Somente eventos em rascunho podem ser publicados."
             );
+        }
+
+        if (inicio == null || fim == null || local == null || local.isBlank()) {
+            throw new IllegalStateException("Informe período e local antes de publicar.");
         }
 
         estado = EstadoEvento.PUBLICADO;
@@ -101,7 +119,9 @@ public class Evento {
     }
 
     public Programacao getProgramacao() {
-        return programacao;
+        Programacao copia = new Programacao();
+        programacao.consultarAtividades().forEach(copia::adicionarAtividade);
+        return copia;
     }
     public EstadoEvento getEstado() {
         return estado;

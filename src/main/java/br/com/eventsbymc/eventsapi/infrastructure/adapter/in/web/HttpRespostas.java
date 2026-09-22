@@ -13,6 +13,18 @@ public final class HttpRespostas {
     private HttpRespostas() {
     }
 
+    public static <T> T lerJson(HttpExchange exchange, Class<T> tipo, ObjectMapper objectMapper) throws IOException {
+        String conteudo = exchange.getRequestHeaders().getFirst("Content-Type");
+        if (conteudo == null || !conteudo.split(";", 2)[0].trim().equalsIgnoreCase("application/json")) {
+            throw new IllegalArgumentException("Envie o corpo no formato application/json.");
+        }
+        byte[] corpo = exchange.getRequestBody().readNBytes(65_537);
+        if (corpo.length > 65_536) throw new IllegalArgumentException("Corpo da requisição excede o limite permitido.");
+        T resultado = objectMapper.readValue(corpo, tipo);
+        if (resultado == null) throw new IllegalArgumentException("Informe o corpo da requisição.");
+        return resultado;
+    }
+
     public static void enviarJson(HttpExchange exchange, int status, Object corpo, ObjectMapper objectMapper) throws IOException {
         byte[] bytes = objectMapper.writeValueAsBytes(corpo);
         exchange.getResponseHeaders().set("Content-Type", "application/json");

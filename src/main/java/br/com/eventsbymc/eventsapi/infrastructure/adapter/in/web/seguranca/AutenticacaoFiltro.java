@@ -3,6 +3,8 @@ package br.com.eventsbymc.eventsapi.infrastructure.adapter.in.web.seguranca;
 import br.com.eventsbymc.eventsapi.application.port.out.TokenClaims;
 import br.com.eventsbymc.eventsapi.application.port.out.TokenProvider;
 import br.com.eventsbymc.eventsapi.infrastructure.adapter.in.web.HttpRespostas;
+import br.com.eventsbymc.eventsapi.infrastructure.adapter.in.web.Router;
+import br.com.eventsbymc.eventsapi.application.exception.TokenInvalidoException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.Filter;
 import com.sun.net.httpserver.HttpExchange;
@@ -15,7 +17,7 @@ import java.util.Set;
 //filter é uma interface do java que permite interceptar requisições e respostas HTTP em um servidor java.
 public class AutenticacaoFiltro extends Filter {
 
-    private static final Set<String> ROTAS_PUBLICAS = Set.of("/usuarios", "/auth/login");
+    private static final Set<String> ROTAS_PUBLICAS = Set.of("POST /usuarios", "POST /auth/login", "GET /eventos");
 
     private final TokenProvider tokenProvider;
     private final ObjectMapper objectMapper;
@@ -33,7 +35,8 @@ public class AutenticacaoFiltro extends Filter {
     @Override
     public void doFilter(HttpExchange exchange, Chain chain) throws IOException {
         String caminho = exchange.getRequestURI().getPath();
-        if (ROTAS_PUBLICAS.contains(caminho)) {
+        if (ROTAS_PUBLICAS.contains(exchange.getRequestMethod() + " " + caminho)
+                || ("GET".equals(exchange.getRequestMethod()) && Router.corresponde("/eventos/{id}", caminho))) {
             chain.doFilter(exchange);
             return;
             //se a rota for pública, o filtro não faz nada e deixa a requisição passar para o próximo filtro ou para o recurso solicitado.
@@ -49,14 +52,18 @@ public class AutenticacaoFiltro extends Filter {
         String token = cabecalhoAutorizacao.substring("Bearer ".length());
         //por padrão bearer é utilizado como prefixo para tokens de autenticação.
         //aqui ele é cortado sobrando só o token puro
+        TokenClaims claims;
         try {
-            TokenClaims claims = tokenProvider.validarToken(token);
+            claims = tokenProvider.validarToken(token);
+        } catch (TokenInvalidoException exception) {
+            HttpRespostas.enviarErro(exchange, HttpURLConnection.HTTP_UNAUTHORIZED,
+                    "Token de autenticação inválido.", objectMapper);
+            return;
+        }
+        try {
             ContextoAutenticacao.definir(claims);
             //aqui as claims são validadas e guardadas na thread, pois o filter roda antes do handler.
             chain.doFilter(exchange);
-        } catch (RuntimeException exception) {
-            HttpRespostas.enviarErro(exchange, HttpURLConnection.HTTP_UNAUTHORIZED,
-                    "Token de autenticação inválido.", objectMapper);
         } finally {
             //limpa a claim guardada, senão pode vazar pra próxima requisição que cair na mesma thread do pool.
             ContextoAutenticacao.limpar();

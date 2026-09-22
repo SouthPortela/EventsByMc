@@ -17,38 +17,61 @@ Os requisitos que essa decisão precisa atender são:
 - **RNF-07/RNF-14**: mensagens de erro compreensíveis, sem expor senha ou dado sensível em
   log.
 
-Restrição adicional definida pela equipe: **minimizar o uso de frameworks**, já que o
-objetivo central da disciplina (POO II) é aprender a modelar e implementar corretamente
-em Java puro, não configurar bibliotecas prontas.
+Restrição atual: **não utilizar Spring/Spring Boot**. O núcleo permanece em Java 21,
+com domínio e aplicação separados dos adaptadores HTTP e JDBC.
 
 ## Decisão
 
-Adotamos **JWT (biblioteca `jjwt`) para emissão/validação de token, com o mecanismo de
-autenticação e autorização escrito manualmente** (um `jakarta.servlet.Filter` para
-autenticação e um `org.springframework.web.servlet.HandlerInterceptor` para autorização
-por perfil) — **sem adicionar `spring-boot-starter-security`**.
+Adotamos **JWT (biblioteca `jjwt`) para emissão/validação de token**, BCrypt
+(`at.favre.lib:bcrypt`) para hash de senha e o `HttpServer` do JDK para receber HTTP.
+O `AutenticacaoFiltro` estende `com.sun.net.httpserver.Filter`. O
+`AutorizacaoInterceptor` é uma classe própria chamada pelo `Router`, sem dependência
+do Spring ou de Servlet. A `CompositionRoot` monta as dependências pelos construtores.
+
+O webapp Vue consome a API pelo prefixo externo `/api`. No backend, as rotas atuais
+são cadastro, login, conta e operações de eventos, conforme os
+[contratos atuais](../api/contratos-webapp.md). O proxy encaminha as chamadas removendo
+o prefixo quando se conecta diretamente ao servidor Java.
 
 ## Alternativas consideradas
 
 | Alternativa | Motivo de não ter sido escolhida |
 |---|---|
-| `spring-boot-starter-security` completo | Traz superfície de configuração grande (`SecurityFilterChain`, `UserDetailsService`, `AuthenticationManager`, CSRF, sessão) desproporcional para 4 perfis fixos e poucos endpoints protegidos; delega a lógica de autorização ao framework, reduzindo o que a equipe efetivamente projeta e implementa em POO. |
-| Sessão de servidor (cookie + estado no backend) | A API é consumida tanto pelo desktop quanto pelo site público (RNF-02), então um mecanismo *stateless* (token autocontido) evita depender de armazenamento de sessão compartilhado entre clientes diferentes. |
+| Spring/Spring Boot | Incompatível com a restrição atual da disciplina; o projeto usa o servidor HTTP do JDK. |
+| Sessão de servidor (cookie + estado no backend) | É uma alternativa válida para o webapp. Foi mantido JWT para aproveitar o contrato de login existente; essa escolha exige expiração e tratamento de sessão inválida no cliente. |
 | Implementar JWT "na mão" (assinatura HMAC manual) | Reinventar criptografia é desnecessário e arriscado; `jjwt` é uma biblioteca pequena e focada, não um framework de aplicação. |
 
 ## Consequências
 
-- Duas dependências novas no `pom.xml`: `jjwt-api`, `jjwt-impl`, `jjwt-jackson`. Nenhuma
-  outra dependência de segurança foi adicionada.
-- O mesmo mecanismo de token (`TokenProvider`/`JwtTokenProviderAdapter`) já usado para
-  login também está disponível para as rotas de QR Code (exigido pelo `AGENTS.md`),
-  evitando duas soluções de token diferentes no mesmo projeto.
-- Autorização por perfil é aplicada via anotação própria (`@RequerPerfil`), lida por
-  reflexão no `AutorizacaoInterceptor` — qualquer novo endpoint (ex.: criação de evento,
-  responsabilidade de outro membro da equipe) só precisa da anotação; nenhuma mudança é
-  necessária nos casos de uso.
-- Fora de escopo (já excluído pelo documento oficial, seção 2.1): recuperação de senha,
-  login social, autenticação multifator, refresh token, OAuth2.
+- Dependências de segurança: `jjwt-api`, `jjwt-impl`, `jjwt-jackson` e `bcrypt`.
+  Jackson serializa e desserializa os contratos HTTP. Nenhuma delas requer Spring.
+- A store atual guarda a sessão em `sessionStorage`. Isso não substitui validação
+  do token e autorização no servidor; não expor tokens em logs ou no HTML.
+- A infraestrutura consulta `@RequerPerfil` por reflexão. `GestaoEventosHandler`
+  exige ORGANIZADOR ou ADMINISTRADOR; o caso de uso consulta os perfis atuais no banco
+  e verifica a propriedade do evento. Um organizador não publica eventos de outro.
+- O contexto autenticado é guardado em `ThreadLocal` e removido no `finally` do filtro.
+  O fluxo atual é síncrono; operações assíncronas não devem presumir propagação desse contexto.
+- O JWT de login autentica geração e confirmação da chamada de presença.
+  O QR usa um código aleatório separado, com validade de cinco minutos e hash
+  persistido. Não contém JWT de login, senha ou identidade de participante.
+  Consulte a [decisão de frequência](decisao-002-frequencia.md).
+- Recuperação de senha, login social e autenticação multifator ficam fora desta etapa.
+  Refresh token e OAuth2 não estão previstos no primeiro fluxo de integração.
+
+## Integração implementada
+
+O [guia do webapp](../api/integracao-webapp.md) apresenta a consulta
+`GET /api/usuarios/me`, o envio de Bearer pelo cliente HTTP e o tratamento de 401.
+A rota usa o ID do token validado e consulta os dados atuais no banco. Não aceita
+um ID escolhido pelo navegador e não retorna o hash de senha.
+
+Nesta consulta basta estar autenticado, inclusive para contas que ainda possuem
+somente `VISITANTE` no modelo atual. Antes de integrar os demais painéis, alinhar
+os perfis do frontend e backend e revisar o perfil inicial do cadastro.
+
+O filtro libera as rotas públicas por método e caminho. `GET /eventos` é público,
+mas `POST /eventos` exige JWT e autorização. Respostas privadas usam `no-store`.
 
 ## Padrões de projeto aplicados
 
@@ -56,6 +79,7 @@ por perfil) — **sem adicionar `spring-boot-starter-security`**.
   (porta `CodePass`) e `JwtTokenProviderAdapter` (porta `TokenProvider`) adaptam
   tecnologia externa (JDBC, Bcrypt, JWT) aos contratos definidos pela aplicação — trocar
   Postgres, o algoritmo de hash ou a biblioteca de token não exige alterar nenhum caso de
-  uso ou controller.
+  uso. Os handlers HTTP adaptam a entrada web aos casos de uso.
 - **Strategy**: `CodePass` e `TokenProvider` são estratégias intercambiáveis, escolhidas
-  na composição (`BeansConfig`), não pelo caso de uso que as utiliza.
+  na composição (`CompositionRoot`), não pelo caso de uso que as utiliza. As políticas
+  configuráveis do domínio ainda precisam demonstrar suas próprias variações de comportamento.

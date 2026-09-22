@@ -1,9 +1,8 @@
 package br.com.eventsbymc.eventsapi;
 
-import br.com.eventsbymc.eventsapi.infrastructure.adapter.in.web.AutenticacaoHandler;
 import br.com.eventsbymc.eventsapi.infrastructure.adapter.in.web.ManipuladorGlobalDeExcessoes;
 import br.com.eventsbymc.eventsapi.infrastructure.adapter.in.web.Router;
-import br.com.eventsbymc.eventsapi.infrastructure.adapter.in.web.UsuarioHandler;
+import br.com.eventsbymc.eventsapi.infrastructure.adapter.in.web.RotasApi;
 import br.com.eventsbymc.eventsapi.infrastructure.adapter.in.web.seguranca.AutenticacaoFiltro;
 import br.com.eventsbymc.eventsapi.infrastructure.config.CompositionRoot;
 import com.sun.net.httpserver.HttpContext;
@@ -18,9 +17,9 @@ public final class EventsApiApplication {
     public static void main(String[] args) throws IOException {
         CompositionRoot raiz = CompositionRoot.montar();
 
-        Router router = new Router()
-                .registrar("POST", "/usuarios", new UsuarioHandler(raiz.registrarUsuarioUseCase, raiz.objectMapper))
-                .registrar("POST", "/auth/login", new AutenticacaoHandler(raiz.autenticarUsuario, raiz.objectMapper));
+        Router router = RotasApi.criar(raiz.registrarUsuarioUseCase, raiz.autenticarUsuario,
+                raiz.consultarMinhaConta, raiz.eventos, raiz.objectMapper);
+        RotasApi.adicionarPresenca(router, raiz.presencas, raiz.objectMapper);
 
         ManipuladorGlobalDeExcessoes handlerComTratamentoDeErro =
                 new ManipuladorGlobalDeExcessoes(router, raiz.objectMapper);
