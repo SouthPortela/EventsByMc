@@ -8,6 +8,12 @@ import { pinia } from '@/stores'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    {
+      path: '/presenca',
+      name: 'confirm-attendance',
+      component: () => import('../views/ConfirmAttendanceView.vue'),
+      meta: { title: 'Confirmar presença' },
+    },
     { path: '/', name: 'home', component: HomeView, meta: { title: 'Eventos' } },
     {
       path: '/eventos/:id',
@@ -36,7 +42,7 @@ const router = createRouter({
     {
       path: '/participante',
       component: DashboardLayout,
-      meta: { minRole: 'PARTICIPANTE', dashboard: true },
+      meta: { minRole: 'PARTICIPANTE', dashboard: true, apiPendente: true },
       children: [
         {
           path: '',
@@ -58,9 +64,7 @@ const router = createRouter({
         },
         {
           path: 'conta',
-          name: 'account',
-          component: () => import('../views/AccountView.vue'),
-          meta: { title: 'Minha conta' },
+          redirect: { name: 'account' },
         },
       ],
     },
@@ -85,7 +89,7 @@ const router = createRouter({
           path: 'inscricoes',
           name: 'organizer-registrations',
           component: () => import('../views/OrganizerRegistrationsView.vue'),
-          meta: { title: 'Gestão de inscrições' },
+          meta: { title: 'Gestão de inscrições', apiPendente: true },
         },
         {
           path: 'frequencia',
@@ -97,14 +101,14 @@ const router = createRouter({
           path: 'relatorios',
           name: 'reports',
           component: () => import('../views/ReportsView.vue'),
-          meta: { title: 'Relatórios' },
+          meta: { title: 'Relatórios', apiPendente: true },
         },
       ],
     },
     {
       path: '/admin',
       component: DashboardLayout,
-      meta: { minRole: 'ADMINISTRADOR', dashboard: true },
+      meta: { minRole: 'ADMINISTRADOR', dashboard: true, apiPendente: true },
       children: [
         {
           path: '',
@@ -133,7 +137,12 @@ const router = createRouter({
       ],
     },
     { path: '/agenda', redirect: '/participante/agenda' },
-    { path: '/conta', redirect: '/participante/conta' },
+    {
+      path: '/conta',
+      name: 'account',
+      component: () => import('../views/AccountView.vue'),
+      meta: { title: 'Minha conta', requiresAuth: true },
+    },
     {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
@@ -151,6 +160,10 @@ router.beforeEach((to) => {
   )
 
   document.title = `${to.meta.title ?? 'EventsByMc'} | EventsByMc`
+
+  if ((to.meta.requiresAuth || minimo) && !auth.autenticado) {
+    return { name: 'login', query: { redirect: to.fullPath } }
+  }
 
   if (minimo && !possuiNivel(auth.perfil, minimo)) {
     return { name: 'access-denied', query: { destino: to.fullPath } }

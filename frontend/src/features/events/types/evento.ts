@@ -1,10 +1,12 @@
 export interface EventoResumo {
-  id: number
+  id: string
   titulo: string
   local: string
-  vagas: number
-  dataInicio: string
-  categoria: string
+  vagas?: number
+  dataInicio: string | null
+  dataFim?: string | null
+  estado?: 'RASCUNHO' | 'PUBLICADO' | 'ENCERRADO'
+  categoria?: string
   modalidade?: 'PRESENCIAL' | 'ONLINE' | 'HIBRIDO'
   banner?: MidiaReferencia
   preco?: string
@@ -19,14 +21,14 @@ export interface MidiaReferencia {
 }
 
 export interface AtividadeResumo {
-  id: number
+  id: string
   titulo: string
   horario: string
   local: string
 }
 
 export interface PessoaDestaque {
-  id: number
+  id: string
   nome: string
   papel: string
   foto?: MidiaReferencia

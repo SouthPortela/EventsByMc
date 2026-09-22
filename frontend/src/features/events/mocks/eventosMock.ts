@@ -2,7 +2,7 @@ import type { EventoDetalhe } from '../types/evento'
 
 export const eventosMock: EventoDetalhe[] = [
   {
-    id: 1,
+    id: '1',
     titulo: 'Simpósio de Cibersegurança e Defesa',
     local: 'Auditório Principal',
     endereco: 'Campus Central — Bloco A',
@@ -19,24 +19,24 @@ export const eventosMock: EventoDetalhe[] = [
     descricao:
       'Um encontro sobre segurança de aplicações, proteção de dados e desafios atuais de Blue Team e SOC.',
     pessoas: [
-      { id: 1, nome: 'Ana Martins', papel: 'Palestrante' },
-      { id: 2, nome: 'Carlos Souza', papel: 'Responsável pela atividade' },
+      { id: '1', nome: 'Ana Martins', papel: 'Palestrante' },
+      { id: '2', nome: 'Carlos Souza', papel: 'Responsável pela atividade' },
     ],
     atividades: [
       {
-        id: 1,
+        id: '1',
         titulo: 'Abertura e Tendências de Ameaças',
         horario: '19:00',
         local: 'Auditório Principal',
       },
       {
-        id: 2,
+        id: '2',
         titulo: 'Segurança em APIs REST e OAuth2',
         horario: '19:45',
         local: 'Auditório Principal',
       },
       {
-        id: 3,
+        id: '3',
         titulo: 'Mesa-redonda: Resposta a Incidentes',
         horario: '21:00',
         local: 'Auditório Principal',
@@ -44,7 +44,7 @@ export const eventosMock: EventoDetalhe[] = [
     ],
   },
   {
-    id: 2,
+    id: '2',
     titulo: 'Oficina de Java e Spring Boot',
     local: 'Laboratório 3',
     endereco: 'Campus Central — Bloco de Laboratórios',
@@ -61,9 +61,14 @@ export const eventosMock: EventoDetalhe[] = [
     descricao:
       'Uma oficina prática para conhecer os fundamentos de arquitetura e aplicações web com Java e Spring Boot.',
     atividades: [
-      { id: 4, titulo: 'Introdução ao Spring Data JPA', horario: '14:00', local: 'Laboratório 3' },
       {
-        id: 5,
+        id: '4',
+        titulo: 'Introdução ao Spring Data JPA',
+        horario: '14:00',
+        local: 'Laboratório 3',
+      },
+      {
+        id: '5',
         titulo: 'Construindo e Testando uma API REST',
         horario: '15:45',
         local: 'Laboratório 3',
@@ -71,7 +76,7 @@ export const eventosMock: EventoDetalhe[] = [
     ],
   },
   {
-    id: 3,
+    id: '3',
     titulo: 'Encontro de Design de Interfaces & UX',
     local: 'Sala Multiuso',
     endereco: 'Campus Central — Biblioteca',
@@ -89,13 +94,13 @@ export const eventosMock: EventoDetalhe[] = [
       'Discussões e atividades sobre acessibilidade, experiência do usuário e construção de interfaces funcionais.',
     atividades: [
       {
-        id: 6,
+        id: '6',
         titulo: 'Princípios de Interfaces Acessíveis',
         horario: '18:30',
         local: 'Sala Multiuso',
       },
       {
-        id: 7,
+        id: '7',
         titulo: 'Laboratório de Prototipação Rápida',
         horario: '20:00',
         local: 'Sala Multiuso',
@@ -103,7 +108,7 @@ export const eventosMock: EventoDetalhe[] = [
     ],
   },
   {
-    id: 4,
+    id: '4',
     titulo: 'Bootcamp de Linux: Shell & Produtividade',
     local: 'Laboratório 1',
     endereco: 'Campus Central — Bloco de Laboratórios',
@@ -120,16 +125,16 @@ export const eventosMock: EventoDetalhe[] = [
       'Domine a linha de comando, automações com Bash script e personalização eficiente de ambientes de desenvolvimento.',
     atividades: [
       {
-        id: 8,
+        id: '8',
         titulo: 'Manipulação de Arquivos e Pipes',
         horario: '19:00',
         local: 'Laboratório 1',
       },
-      { id: 9, titulo: 'Criando Scripts de Automação', horario: '20:30', local: 'Laboratório 1' },
+      { id: '9', titulo: 'Criando Scripts de Automação', horario: '20:30', local: 'Laboratório 1' },
     ],
   },
   {
-    id: 5,
+    id: '5',
     titulo: 'Workshop de Redes Corporativas e Roteamento',
     local: 'Laboratório de Redes',
     endereco: 'Campus Tecnológico — Bloco C',
@@ -146,13 +151,13 @@ export const eventosMock: EventoDetalhe[] = [
       'Configuração prática de VLANs, firewalls, sub-redes e políticas de controle de tráfego para ambientes empresariais.',
     atividades: [
       {
-        id: 10,
+        id: '10',
         titulo: 'Fundamentos de Sub-redes e VLANs',
         horario: '14:00',
         local: 'Laboratório de Redes',
       },
       {
-        id: 11,
+        id: '11',
         titulo: 'Prática de Roteamento e Firewall',
         horario: '16:00',
         local: 'Laboratório de Redes',
@@ -160,7 +165,7 @@ export const eventosMock: EventoDetalhe[] = [
     ],
   },
   {
-    id: 6,
+    id: '6',
     titulo: 'Containers com Docker na Prática',
     local: 'Laboratório 4',
     endereco: 'Campus Central — Bloco de Laboratórios',
@@ -177,13 +182,13 @@ export const eventosMock: EventoDetalhe[] = [
       'Aprenda a empacotar, versionar e orquestrar aplicações modernas utilizando Docker e Docker Compose.',
     atividades: [
       {
-        id: 12,
+        id: '12',
         titulo: 'Criando Dockerfiles Eficientes',
         horario: '19:00',
         local: 'Laboratório 4',
       },
       {
-        id: 13,
+        id: '13',
         titulo: 'Orquestração com Docker Compose',
         horario: '20:30',
         local: 'Laboratório 4',
@@ -191,7 +196,7 @@ export const eventosMock: EventoDetalhe[] = [
     ],
   },
   {
-    id: 7,
+    id: '7',
     titulo: 'Estruturas de Dados e Algoritmos com C',
     local: 'Sala 102',
     endereco: 'Campus Central — Bloco B',
@@ -207,12 +212,12 @@ export const eventosMock: EventoDetalhe[] = [
     descricao:
       'Estudo detalhado sobre gerenciamento de memória, ponteiros, listas encadeadas, árvores binárias e análise de complexidade.',
     atividades: [
-      { id: 14, titulo: 'Ponteiros e Alocação Dinâmica', horario: '16:00', local: 'Sala 102' },
-      { id: 15, titulo: 'Árvores Binárias e Grafos', horario: '17:30', local: 'Sala 102' },
+      { id: '14', titulo: 'Ponteiros e Alocação Dinâmica', horario: '16:00', local: 'Sala 102' },
+      { id: '15', titulo: 'Árvores Binárias e Grafos', horario: '17:30', local: 'Sala 102' },
     ],
   },
   {
-    id: 8,
+    id: '8',
     titulo: 'Painel: Cloud AWS e Arquitetura Serverless',
     local: 'Auditório Principal',
     endereco: 'Campus Central — Bloco A',
@@ -229,13 +234,13 @@ export const eventosMock: EventoDetalhe[] = [
       'Visão geral sobre arquiteturas escaláveis na nuvem, serviços de armazenamento de objetos e computação orientada a eventos.',
     atividades: [
       {
-        id: 16,
+        id: '16',
         titulo: 'Armazenamento com S3 e CloudFront',
         horario: '19:30',
         local: 'Auditório Principal',
       },
       {
-        id: 17,
+        id: '17',
         titulo: 'Microsserviços e Funções Serverless',
         horario: '20:45',
         local: 'Auditório Principal',
@@ -243,7 +248,7 @@ export const eventosMock: EventoDetalhe[] = [
     ],
   },
   {
-    id: 9,
+    id: '9',
     titulo: 'Hackathon Universitário de Inovação',
     local: 'Ginásio Poliesportivo',
     endereco: 'Campus Central — Complexo Esportivo',
@@ -253,13 +258,18 @@ export const eventosMock: EventoDetalhe[] = [
     descricao:
       'Uma maratona de 24 horas de desenvolvimento focada em solucionar problemas de logística, saúde e educação regional.',
     atividades: [
-      { id: 18, titulo: 'Apresentação dos Desafios', horario: '08:00', local: 'Ginásio' },
-      { id: 19, titulo: 'Mentoria Técnica de Projetos', horario: '14:00', local: 'Ginásio' },
-      { id: 20, titulo: 'Pitch Final e Premiação', horario: '20:00', local: 'Auditório Principal' },
+      { id: '18', titulo: 'Apresentação dos Desafios', horario: '08:00', local: 'Ginásio' },
+      { id: '19', titulo: 'Mentoria Técnica de Projetos', horario: '14:00', local: 'Ginásio' },
+      {
+        id: '20',
+        titulo: 'Pitch Final e Premiação',
+        horario: '20:00',
+        local: 'Auditório Principal',
+      },
     ],
   },
   {
-    id: 10,
+    id: '10',
     titulo: 'Oficina de Modelagem de Banco de Dados SQL',
     local: 'Laboratório 2',
     endereco: 'Campus Central — Bloco de Laboratórios',
@@ -270,13 +280,13 @@ export const eventosMock: EventoDetalhe[] = [
       'Boas práticas de normalização, criação de relacionamentos, índices de performance e consultas analíticas avançadas.',
     atividades: [
       {
-        id: 21,
+        id: '21',
         titulo: 'Normalização até 3FN na Prática',
         horario: '19:00',
         local: 'Laboratório 2',
       },
       {
-        id: 22,
+        id: '22',
         titulo: 'Otimização de Queries com Índices',
         horario: '20:30',
         local: 'Laboratório 2',
@@ -284,7 +294,7 @@ export const eventosMock: EventoDetalhe[] = [
     ],
   },
   {
-    id: 11,
+    id: '11',
     titulo: 'Seminário de Inteligência Artificial e LLMs',
     local: 'Auditório de Ciências',
     endereco: 'Campus Tecnológico — Bloco D',
@@ -295,13 +305,13 @@ export const eventosMock: EventoDetalhe[] = [
       'Como integrar modelos de linguagem em aplicações corporativas utilizando engenharia de prompt e RAG.',
     atividades: [
       {
-        id: 23,
+        id: '23',
         titulo: 'Fundamentos de Modelos Generativos',
         horario: '15:00',
         local: 'Auditório de Ciências',
       },
       {
-        id: 24,
+        id: '24',
         titulo: 'Arquiteturas RAG para Negócios',
         horario: '16:30',
         local: 'Auditório de Ciências',
@@ -309,7 +319,7 @@ export const eventosMock: EventoDetalhe[] = [
     ],
   },
   {
-    id: 12,
+    id: '12',
     titulo: 'Palestra: Segurança Defensiva e SIEM',
     local: 'Sala Multiuso',
     endereco: 'Campus Central — Biblioteca',
@@ -320,13 +330,13 @@ export const eventosMock: EventoDetalhe[] = [
       'Monitoramento centralizado de logs, correlação de eventos e criação de regras de detecção para prevenção de invasões.',
     atividades: [
       {
-        id: 25,
+        id: '25',
         titulo: 'Coleta e Análise de Logs de Sistema',
         horario: '19:00',
         local: 'Sala Multiuso',
       },
       {
-        id: 26,
+        id: '26',
         titulo: 'Caça a Ameaças (Threat Hunting)',
         horario: '20:15',
         local: 'Sala Multiuso',
@@ -334,7 +344,7 @@ export const eventosMock: EventoDetalhe[] = [
     ],
   },
   {
-    id: 13,
+    id: '13',
     titulo: 'Minicurso de TypeScript para Frontend',
     local: 'Laboratório 3',
     endereco: 'Campus Central — Bloco de Laboratórios',
@@ -344,9 +354,9 @@ export const eventosMock: EventoDetalhe[] = [
     descricao:
       'Transição prática de JavaScript para TypeScript: tipos primitivos, interfaces, generics e integração com frameworks reativos.',
     atividades: [
-      { id: 27, titulo: 'Tipagem Estrita e Generics', horario: '14:00', local: 'Laboratório 3' },
+      { id: '27', titulo: 'Tipagem Estrita e Generics', horario: '14:00', local: 'Laboratório 3' },
       {
-        id: 28,
+        id: '28',
         titulo: 'TypeScript Aplicado a Componentes',
         horario: '16:00',
         local: 'Laboratório 3',
@@ -354,7 +364,7 @@ export const eventosMock: EventoDetalhe[] = [
     ],
   },
   {
-    id: 14,
+    id: '14',
     titulo: 'Mesa-Redonda: Mercado de TI e Carreiras',
     local: 'Auditório Principal',
     endereco: 'Campus Central — Bloco A',
@@ -365,13 +375,13 @@ export const eventosMock: EventoDetalhe[] = [
       'Profissionais de empresas locais e globais discutem o mercado de desenvolvimento, suporte corporativo e infraestrutura.',
     atividades: [
       {
-        id: 29,
+        id: '29',
         titulo: 'Transição de Estágio para Júnior',
         horario: '19:30',
         local: 'Auditório Principal',
       },
       {
-        id: 30,
+        id: '30',
         titulo: 'Perguntas e Respostas com Especialistas',
         horario: '20:45',
         local: 'Auditório Principal',
@@ -379,7 +389,7 @@ export const eventosMock: EventoDetalhe[] = [
     ],
   },
   {
-    id: 15,
+    id: '15',
     titulo: 'Workshop de Git e Estratégias de Branching',
     local: 'Laboratório 1',
     endereco: 'Campus Central — Bloco de Laboratórios',
@@ -390,13 +400,13 @@ export const eventosMock: EventoDetalhe[] = [
       'Domine fluxos de trabalho em equipe com Gitflow, resolução de conflitos de merge, rebase e padronização de commits.',
     atividades: [
       {
-        id: 31,
+        id: '31',
         titulo: 'Fluxos de Trabalho: Trunk-based vs Gitflow',
         horario: '18:30',
         local: 'Laboratório 1',
       },
       {
-        id: 32,
+        id: '32',
         titulo: 'Resolução de Conflitos e Rebase',
         horario: '20:00',
         local: 'Laboratório 1',
@@ -404,7 +414,7 @@ export const eventosMock: EventoDetalhe[] = [
     ],
   },
   {
-    id: 16,
+    id: '16',
     titulo: 'Jornada de Automação de Infraestrutura',
     local: 'Laboratório 4',
     endereco: 'Campus Central — Bloco de Laboratórios',
@@ -415,13 +425,13 @@ export const eventosMock: EventoDetalhe[] = [
       'Gerenciamento de configurações e provisionamento automatizado de servidores com Ansible e scripts de automação.',
     atividades: [
       {
-        id: 33,
+        id: '33',
         titulo: 'Introdução a Playbooks do Ansible',
         horario: '14:00',
         local: 'Laboratório 4',
       },
       {
-        id: 34,
+        id: '34',
         titulo: 'Configuração Automatizada de Servidores',
         horario: '16:00',
         local: 'Laboratório 4',
@@ -429,7 +439,7 @@ export const eventosMock: EventoDetalhe[] = [
     ],
   },
   {
-    id: 17,
+    id: '17',
     titulo: 'Oficina de Testes Automatizados e TDD',
     local: 'Laboratório 2',
     endereco: 'Campus Central — Bloco de Laboratórios',
@@ -439,12 +449,12 @@ export const eventosMock: EventoDetalhe[] = [
     descricao:
       'Escrevendo código confiável com testes unitários, testes de integração, mocks e desenvolvimento orientado a testes.',
     atividades: [
-      { id: 35, titulo: 'Testes Unitários e Mocking', horario: '19:00', local: 'Laboratório 2' },
-      { id: 36, titulo: 'Prática de TDD do Zero', horario: '20:30', local: 'Laboratório 2' },
+      { id: '35', titulo: 'Testes Unitários e Mocking', horario: '19:00', local: 'Laboratório 2' },
+      { id: '36', titulo: 'Prática de TDD do Zero', horario: '20:30', local: 'Laboratório 2' },
     ],
   },
   {
-    id: 18,
+    id: '18',
     titulo: 'Encontro de Hardware e Homelabs',
     local: 'Sala Multiuso',
     endereco: 'Campus Central — Biblioteca',
@@ -455,13 +465,13 @@ export const eventosMock: EventoDetalhe[] = [
       'Montagem de servidores caseiros, virtualização com hypervisors, storage em rede (NAS) e automação residencial.',
     atividades: [
       {
-        id: 37,
+        id: '37',
         titulo: 'Escolha de Peças e Virtualização',
         horario: '18:30',
         local: 'Sala Multiuso',
       },
       {
-        id: 38,
+        id: '38',
         titulo: 'Showcase de Homelabs dos Alunos',
         horario: '20:15',
         local: 'Sala Multiuso',
@@ -469,7 +479,7 @@ export const eventosMock: EventoDetalhe[] = [
     ],
   },
   {
-    id: 19,
+    id: '19',
     titulo: 'Seminário de Privacidade e LGPD',
     local: 'Auditório de Ciências',
     endereco: 'Campus Tecnológico — Bloco D',
@@ -480,13 +490,13 @@ export const eventosMock: EventoDetalhe[] = [
       'Impactos da Lei Geral de Proteção de Dados na arquitetura de sistemas e diretrizes para tratamento ético de dados.',
     atividades: [
       {
-        id: 39,
+        id: '39',
         titulo: 'Princípios da LGPD para Desenvolvedores',
         horario: '10:00',
         local: 'Auditório de Ciências',
       },
       {
-        id: 40,
+        id: '40',
         titulo: 'Anonimização e Políticas de Retenção',
         horario: '11:15',
         local: 'Auditório de Ciências',
@@ -494,7 +504,7 @@ export const eventosMock: EventoDetalhe[] = [
     ],
   },
   {
-    id: 20,
+    id: '20',
     titulo: 'Feira Anual de Projetos e TCCs',
     local: 'Hall Central do Campus',
     endereco: 'Campus Central — Hall Principal',
@@ -505,14 +515,19 @@ export const eventosMock: EventoDetalhe[] = [
       'Exposição de sistemas de software, protótipos de engenharia e pesquisas acadêmicas desenvolvidas pelos formandos.',
     atividades: [
       {
-        id: 41,
+        id: '41',
         titulo: 'Abertura dos Stands de Apresentação',
         horario: '18:00',
         local: 'Hall Central',
       },
-      { id: 42, titulo: 'Avaliação da Banca Examinadora', horario: '19:30', local: 'Hall Central' },
       {
-        id: 43,
+        id: '42',
+        titulo: 'Avaliação da Banca Examinadora',
+        horario: '19:30',
+        local: 'Hall Central',
+      },
+      {
+        id: '43',
         titulo: 'Encerramento e Premiação de Destaque',
         horario: '21:30',
         local: 'Auditório Principal',

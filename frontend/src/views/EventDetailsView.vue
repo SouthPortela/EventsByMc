@@ -1,47 +1,69 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import AppIcon from '@/components/icons/AppIcon.vue'
 import { buscarEventoPorId } from '@/features/events/services/eventoService'
 import type { EventoDetalhe } from '@/features/events/types/evento'
 import { formatarData } from '@/features/events/utils/formatarData'
+import { ApiError } from '@/shared/services/httpClient'
+import { inscrever } from '@/features/attendance/services/presencaService'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const auth = useAuthStore()
+const inscrevendo = ref(false)
+const inscricaoConfirmada = ref(false)
+const erroInscricao = ref('')
+async function realizarInscricao(): Promise<void> {
+  if (inscrevendo.value || !evento.value) return
+  const id = evento.value.id
+  erroInscricao.value = ''
+  inscrevendo.value = true
+  try {
+    await inscrever(id)
+    if (evento.value?.id === id) inscricaoConfirmada.value = true
+  } catch (e) {
+    if (evento.value?.id === id)
+      erroInscricao.value =
+        e instanceof ApiError
+          ? e.message
+          : 'Não foi possível confirmar a inscrição. Você pode tentar novamente.'
+  } finally {
+    inscrevendo.value = false
+  }
+}
 const evento = ref<EventoDetalhe | null>(null)
 const carregando = ref(true)
 const mensagemErro = ref('')
-const mensagemInscricao = ref('')
-
-function solicitarInscricao(): void {
-  mensagemInscricao.value =
-    'Solicitação validada na interface. A confirmação será feita pela API REST.'
-}
+let consultaAtual = 0
 
 async function carregarEvento(): Promise<void> {
-  const id = Number(route.params.id)
-
-  if (!Number.isInteger(id) || id <= 0) {
+  inscricaoConfirmada.value = false
+  erroInscricao.value = ''
+  const consulta = ++consultaAtual
+  const id = String(route.params.id ?? '')
+  evento.value = null
+  mensagemErro.value = ''
+  carregando.value = true
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
     mensagemErro.value = 'O identificador do evento é inválido.'
     carregando.value = false
     return
   }
-
   try {
-    evento.value = (await buscarEventoPorId(id)) ?? null
-
-    if (!evento.value) {
-      mensagemErro.value = 'Evento não encontrado.'
-    }
-  } catch {
-    mensagemErro.value = 'Não foi possível carregar os detalhes do evento.'
+    const resultado = await buscarEventoPorId(id)
+    if (consulta === consultaAtual) evento.value = resultado
+  } catch (e) {
+    if (consulta === consultaAtual)
+      mensagemErro.value =
+        e instanceof ApiError && e.status === 404
+          ? 'Evento não encontrado ou indisponível para consulta pública.'
+          : 'Não foi possível carregar os detalhes do evento.'
   } finally {
-    carregando.value = false
+    if (consulta === consultaAtual) carregando.value = false
   }
 }
-
-onMounted(carregarEvento)
+watch(() => route.params.id, carregarEvento, { immediate: true })
 </script>
 
 <template>
@@ -80,9 +102,11 @@ onMounted(carregarEvento)
           </div>
           <div class="col-lg-6">
             <div class="card-body p-4 p-lg-5">
-              <span class="badge rounded-pill text-bg-primary-subtle text-primary-custom mb-3">{{
-                evento.categoria
-              }}</span>
+              <span
+                v-if="evento.categoria"
+                class="badge rounded-pill text-bg-primary-subtle text-primary-custom mb-3"
+                >{{ evento.categoria }}</span
+              >
               <h1 class="display-6 fw-bold mb-3">{{ evento.titulo }}</h1>
               <p class="lead text-secondary">{{ evento.descricao }}</p>
 
@@ -115,6 +139,9 @@ onMounted(carregarEvento)
           <section class="mb-5">
             <p class="text-primary-custom fw-semibold small text-uppercase mb-1">Cronograma</p>
             <h2 class="h3 fw-bold mb-4">Programação do evento</h2>
+            <p v-if="!evento.atividades.length" class="text-muted">
+              Programação ainda não cadastrada.
+            </p>
             <div class="vstack gap-3">
               <article
                 v-for="atividade in evento.atividades"
@@ -166,40 +193,40 @@ onMounted(carregarEvento)
           <div class="card border-0 shadow-sm event-sticky-card">
             <div class="card-body p-4">
               <p class="text-primary-custom fw-semibold small text-uppercase mb-1">Participação</p>
-              <h2 class="h4 fw-bold">Garanta sua vaga</h2>
-              <p class="h5 fw-bold text-dark">
-                {{ evento.gratuito ? 'Gratuito' : (evento.preco ?? 'Consulte o organizador') }}
-              </p>
-              <p v-if="evento.vagas > 0" class="text-success fw-semibold">
-                {{ evento.vagas }} vagas disponíveis
-              </p>
-              <p v-else class="text-danger fw-semibold">Vagas esgotadas</p>
+              <h2 class="h4 fw-bold">Inscrições</h2>
               <p class="small text-muted">
-                A inscrição será confirmada após autenticação e validação das regras do evento.
+                Inscreva-se no evento para confirmar sua presença nas atividades.
               </p>
-
-              <div v-if="mensagemInscricao" class="alert alert-success small" role="status">
-                {{ mensagemInscricao }}
+              <div v-if="erroInscricao" class="alert alert-warning" role="alert">
+                {{ erroInscricao }}
               </div>
-
+              <div v-if="inscricaoConfirmada" class="alert alert-success" role="status">
+                Inscrição ativa confirmada.
+              </div>
               <RouterLink
-                v-if="evento.vagas > 0 && !auth.autenticado"
-                class="btn btn-primary-custom btn-lg w-100"
+                v-if="!auth.autenticado"
+                class="btn btn-primary-custom w-100"
                 :to="{ name: 'login', query: { redirect: route.fullPath } }"
+                >Entrar para se inscrever</RouterLink
               >
-                Entrar para se inscrever
-              </RouterLink>
               <button
-                v-else-if="evento.vagas > 0"
-                class="btn btn-primary-custom btn-lg w-100"
+                v-else
+                class="btn btn-primary-custom w-100"
                 type="button"
-                @click="solicitarInscricao"
+                :disabled="inscrevendo || inscricaoConfirmada"
+                @click="realizarInscricao"
               >
-                Confirmar inscrição
+                {{
+                  inscrevendo
+                    ? 'Inscrevendo...'
+                    : inscricaoConfirmada
+                      ? 'Inscrição confirmada'
+                      : 'Inscrever-me'
+                }}
               </button>
-              <button v-else class="btn btn-secondary btn-lg w-100" type="button" disabled>
-                Inscrições encerradas
-              </button>
+              <RouterLink class="btn btn-outline-primary w-100 mt-3" to="/presenca"
+                >Confirmar presença com código</RouterLink
+              >
             </div>
           </div>
         </aside>

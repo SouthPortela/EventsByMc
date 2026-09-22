@@ -1,22 +1,75 @@
-import { describe, expect, it } from 'vitest'
-import { buscarEventoPorId, listarEventos } from './eventoService'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  buscarEventoPorId,
+  listarEventos,
+  listarMeusEventos,
+  criarEvento,
+  alterarEstadoEvento,
+} from './eventoService'
+import { ApiError, configurarHttpClient } from '@/shared/services/httpClient'
 
-describe('eventoService', () => {
-  it('lista os resumos dos eventos simulados', async () => {
+const id = 'b114d7b7-a7b6-4209-b6c8-24c4fbb27b00'
+const resposta = {
+  id,
+  titulo: 'Simpósio',
+  descricao: 'Descrição do simpósio',
+  local: 'Auditório',
+  dataInicio: '2026-10-10T09:00:00',
+  dataFim: '2026-10-10T18:00:00',
+  estado: 'PUBLICADO',
+  atividades: [],
+}
+afterEach(() => vi.unstubAllGlobals())
+function servidor(dados: unknown, status = 200) {
+  const fetchMock = vi.fn().mockImplementation(async () => Response.json(dados, { status }))
+  vi.stubGlobal('fetch', fetchMock)
+  configurarHttpClient({ obterToken: () => 'token-de-teste', aoNaoAutorizado: vi.fn() })
+  return fetchMock
+}
+describe('eventoService REST', () => {
+  it('lista dados reais sem inventar vagas e categorias', async () => {
+    const fetchMock = servidor([resposta])
     const eventos = await listarEventos()
-
-    expect(eventos.length).toBeGreaterThan(0)
-    expect(eventos[0]).not.toHaveProperty('atividades')
+    expect(fetchMock).toHaveBeenCalledWith('/api/eventos', expect.any(Object))
+    expect(eventos[0]).toMatchObject({ id, titulo: 'Simpósio' })
+    expect(eventos[0]).not.toHaveProperty('vagas')
+    expect(eventos[0]).not.toHaveProperty('categoria')
   })
-
-  it('busca os detalhes de um evento pelo identificador', async () => {
-    const evento = await buscarEventoPorId(1)
-
-    expect(evento?.titulo).toBe('Simpósio de Cibersegurança e Defesa')
-    expect(evento?.atividades).toHaveLength(3)
+  it('consulta os detalhes usando UUID', async () => {
+    const fetchMock = servidor(resposta)
+    expect(await buscarEventoPorId(id)).toMatchObject({ id, atividades: [] })
+    expect(fetchMock).toHaveBeenCalledWith('/api/eventos/' + id, expect.any(Object))
   })
-
-  it('retorna undefined quando o evento não existe', async () => {
-    expect(await buscarEventoPorId(999)).toBeUndefined()
+  it('propaga 404 sem recorrer aos mocks', async () => {
+    servidor({ mensagem: 'Não encontrado' }, 404)
+    await expect(buscarEventoPorId(id)).rejects.toBeInstanceOf(ApiError)
+  })
+  it('autentica a lista do organizador', async () => {
+    const fetchMock = servidor([resposta])
+    await listarMeusEventos()
+    expect(fetchMock.mock.calls[0]?.[1].headers.get('Authorization')).toBe('Bearer token-de-teste')
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/usuarios/me/eventos')
+  })
+  it('envia somente o contrato da criação', async () => {
+    const fetchMock = servidor({ ...resposta, estado: 'RASCUNHO' }, 201)
+    const dados = {
+      titulo: resposta.titulo,
+      descricao: resposta.descricao,
+      local: resposta.local,
+      dataInicio: resposta.dataInicio,
+      dataFim: resposta.dataFim,
+    }
+    expect((await criarEvento(dados)).estado).toBe('RASCUNHO')
+    expect(fetchMock.mock.calls[0]?.[1].method).toBe('POST')
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1].body)).toEqual(dados)
+  })
+  it('publica e encerra pela rota protegida', async () => {
+    const fetchMock = servidor(resposta)
+    await alterarEstadoEvento(id, 'publicacao')
+    await alterarEstadoEvento(id, 'encerramento')
+    expect(fetchMock.mock.calls.map((c) => c[0])).toEqual([
+      '/api/eventos/' + id + '/publicacao',
+      '/api/eventos/' + id + '/encerramento',
+    ])
   })
 })

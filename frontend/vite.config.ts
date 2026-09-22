@@ -1,30 +1,23 @@
 import { fileURLToPath, URL } from 'node:url'
-
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [
-    vue(),
-    vueDevTools(),
-  ],
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-    },
-  },
-  server: {
-    // Em dev, o navegador chama /api/* no próprio localhost (sem CORS), e o
-    // servidor Node do Vite repassa pro backend real, removendo o prefixo /api
-    // — o mesmo comportamento que o Apache faz em produção (ProxyPass /api/ ...).
-    proxy: {
-      '/api': {
-        target: 'https://eventos.monkeycorp.com.br',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), 'API_')
+  return {
+    plugins: [vue(), vueDevTools()],
+    resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
+    server: {
+      proxy: {
+        '/api': {
+          target: env.API_PROXY_TARGET || 'http://127.0.0.1:8080',
+          changeOrigin: true,
+          // O Java local não tem /api. Um proxy remoto pode exigir esse prefixo.
+          rewrite: (path) =>
+            env.API_PROXY_KEEP_PREFIX === 'true' ? path : path.replace(/^\/api/, ''),
+        },
       },
     },
-  },
+  }
 })

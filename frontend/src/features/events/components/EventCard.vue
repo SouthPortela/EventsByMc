@@ -2,18 +2,11 @@
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import AppIcon from '@/components/icons/AppIcon.vue'
+import { formatarData } from '../utils/formatarData'
 import type { EventoResumo } from '../types/evento'
 
 const props = defineProps<{ evento: EventoResumo }>()
 const favorito = ref(false)
-
-const formatadorData = new Intl.DateTimeFormat('pt-BR', {
-  day: '2-digit',
-  month: 'short',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-})
 
 function alternarFavorito(): void {
   favorito.value = !favorito.value
@@ -50,7 +43,7 @@ async function compartilhar(): Promise<void> {
       >
         <AppIcon class="text-primary-custom" name="calendar" :size="48" />
       </div>
-      <span class="event-category-badge">{{ evento.categoria }}</span>
+      <span v-if="evento.categoria" class="event-category-badge">{{ evento.categoria }}</span>
       <button
         class="event-heart-btn"
         :class="{ 'text-danger': favorito }"
@@ -65,7 +58,7 @@ async function compartilhar(): Promise<void> {
 
     <div class="d-flex flex-column flex-grow-1 p-3 p-lg-4">
       <p class="small fw-bold text-primary-custom text-uppercase mb-2">
-        {{ formatadorData.format(new Date(evento.dataInicio)) }}
+        {{ formatarData(evento.dataInicio) }}
       </p>
       <h3 class="h5 fw-bold text-truncate-2 mb-3">{{ evento.titulo }}</h3>
       <p class="d-flex align-items-start gap-2 small text-secondary mb-3">

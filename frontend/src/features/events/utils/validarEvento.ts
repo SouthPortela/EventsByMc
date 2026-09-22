@@ -1,26 +1,21 @@
-export interface DadosFormularioEvento {
-  titulo: string
-  descricao: string
-  dataInicio: string
-  local: string
-  controlaVagas: boolean
-  capacidade: number | null
-}
-
+import type { DadosCriacaoEvento } from '../services/eventoService'
+export type DadosFormularioEvento = DadosCriacaoEvento
 export type ErrosEvento = Partial<Record<keyof DadosFormularioEvento, string>>
 
 export function validarEvento(dados: DadosFormularioEvento): ErrosEvento {
   const erros: ErrosEvento = {}
-
-  if (dados.titulo.trim().length < 5)
-    erros.titulo = 'Informe um título com pelo menos 5 caracteres.'
-  if (dados.descricao.trim().length < 20)
-    erros.descricao = 'Descreva o evento com pelo menos 20 caracteres.'
-  if (!dados.dataInicio) erros.dataInicio = 'Informe a data de início.'
-  if (!dados.local.trim()) erros.local = 'Informe o local ou modalidade.'
-  if (dados.controlaVagas && (!dados.capacidade || dados.capacidade <= 0)) {
-    erros.capacidade = 'Informe uma capacidade maior que zero.'
-  }
-
+  const inicio = Date.parse(dados.dataInicio)
+  const fim = Date.parse(dados.dataFim)
+  if (dados.titulo.trim().length < 5 || dados.titulo.trim().length > 200)
+    erros.titulo = 'Informe um título entre 5 e 200 caracteres.'
+  if (dados.descricao.trim().length < 20 || dados.descricao.trim().length > 10000)
+    erros.descricao = 'Descreva o evento usando entre 20 e 10.000 caracteres.'
+  if (!dados.dataInicio || Number.isNaN(inicio))
+    erros.dataInicio = 'Informe uma data de início válida.'
+  if (!dados.dataFim || Number.isNaN(fim)) erros.dataFim = 'Informe uma data de término válida.'
+  else if (!Number.isNaN(inicio) && fim <= inicio)
+    erros.dataFim = 'O término deve ser posterior ao início.'
+  if (!dados.local.trim() || dados.local.trim().length > 200)
+    erros.local = 'Informe um local com até 200 caracteres.'
   return erros
 }

@@ -4,7 +4,7 @@ import { filtrarEventos } from './filtrarEventos'
 
 const eventos: EventoResumo[] = [
   {
-    id: 1,
+    id: '1',
     titulo: 'Simpósio de Segurança',
     local: 'Auditório',
     vagas: 10,
@@ -12,7 +12,7 @@ const eventos: EventoResumo[] = [
     categoria: 'Tecnologia',
   },
   {
-    id: 2,
+    id: '2',
     titulo: 'Oficina de Design',
     local: 'Laboratório',
     vagas: 5,
@@ -29,7 +29,7 @@ describe('filtrarEventos', () => {
       local: 'Auditório',
     })
 
-    expect(resultado.map((evento) => evento.id)).toEqual([1])
+    expect(resultado.map((evento) => evento.id)).toEqual(['1'])
   })
 
   it('retorna todos os eventos quando os filtros estão vazios', () => {

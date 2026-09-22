@@ -1,174 +1,150 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { RouterLink } from 'vue-router'
-import MediaUploadField from '@/features/media/components/MediaUploadField.vue'
+import { RouterLink, useRouter } from 'vue-router'
+import { criarEvento } from '@/features/events/services/eventoService'
 import {
   validarEvento,
   type DadosFormularioEvento,
   type ErrosEvento,
 } from '@/features/events/utils/validarEvento'
+import { ApiError } from '@/shared/services/httpClient'
 
+const router = useRouter()
 const dados = reactive<DadosFormularioEvento>({
   titulo: '',
   descricao: '',
   dataInicio: '',
+  dataFim: '',
   local: '',
-  controlaVagas: true,
-  capacidade: null,
 })
 const erros = ref<ErrosEvento>({})
-const banner = ref<File | null>(null)
 const mensagem = ref('')
+const salvando = ref(false)
 
-function salvarRascunho(): void {
+async function salvarRascunho(): Promise<void> {
+  if (salvando.value) return
   mensagem.value = ''
   erros.value = validarEvento(dados)
-
-  if (Object.keys(erros.value).length === 0) {
-    mensagem.value = banner.value
-      ? 'Evento e banner validados. A persistência e o upload S3 aguardam a API REST.'
-      : 'Evento validado. A persistência aguarda a API REST; o banner permanece opcional.'
+  if (Object.keys(erros.value).length) return
+  salvando.value = true
+  try {
+    const evento = await criarEvento({
+      ...dados,
+      titulo: dados.titulo.trim(),
+      descricao: dados.descricao.trim(),
+      local: dados.local.trim(),
+    })
+    await router.push({ name: 'organizer-dashboard', query: { criado: evento.id } })
+  } catch (e) {
+    mensagem.value =
+      e instanceof ApiError
+        ? e.message
+        : 'Não foi possível confirmar o salvamento. Consulte seu painel antes de tentar novamente.'
+  } finally {
+    salvando.value = false
   }
 }
 </script>
 
 <template>
   <div class="container-fluid p-4 p-xl-5">
-    <nav aria-label="Navegação estrutural">
-      <ol class="breadcrumb">
-        <li class="breadcrumb-item"><RouterLink to="/organizador">Organizador</RouterLink></li>
-        <li class="breadcrumb-item active" aria-current="page">Novo evento</li>
-      </ol>
+    <nav aria-label="Navegação estrutural" class="mb-4">
+      <RouterLink to="/organizador">Meus eventos</RouterLink> / Novo evento
     </nav>
-
     <div class="row g-4">
       <div class="col-lg-8">
-        <div class="mb-4">
-          <p class="text-primary-custom fw-semibold small text-uppercase mb-1">Gestão de eventos</p>
-          <h1 class="h2 fw-bold mb-1">Criar novo evento</h1>
-          <p class="text-muted mb-0">Comece pelas informações essenciais e salve como rascunho.</p>
-        </div>
-
-        <div v-if="mensagem" class="alert alert-info" role="status">{{ mensagem }}</div>
-
+        <h1 class="h2 fw-bold">Criar novo evento</h1>
+        <p class="text-muted">Salve um rascunho e publique quando estiver pronto.</p>
+        <div v-if="mensagem" class="alert alert-warning" role="alert">{{ mensagem }}</div>
         <form novalidate @submit.prevent="salvarRascunho">
-          <section class="card border-0 shadow-sm mb-4">
+          <fieldset :disabled="salvando" class="card border-0 shadow-sm">
             <div class="card-body p-4">
-              <h2 class="h5 fw-bold mb-4">Informações básicas</h2>
-
               <div class="mb-3">
-                <label class="form-label fw-semibold" for="evento-titulo">Título</label>
+                <label for="titulo" class="form-label">Título</label>
                 <input
-                  id="evento-titulo"
+                  id="titulo"
                   v-model="dados.titulo"
-                  class="form-control form-control-lg"
+                  class="form-control"
                   :class="{ 'is-invalid': erros.titulo }"
-                  placeholder="Ex.: Simpósio de Tecnologia 2026"
+                  maxlength="200"
+                  required
                 />
-                <div v-if="erros.titulo" class="invalid-feedback">{{ erros.titulo }}</div>
+                <div class="invalid-feedback">{{ erros.titulo }}</div>
               </div>
-
               <div class="mb-3">
-                <label class="form-label fw-semibold" for="evento-descricao">Descrição</label>
+                <label for="descricao" class="form-label">Descrição</label>
                 <textarea
-                  id="evento-descricao"
+                  id="descricao"
                   v-model="dados.descricao"
                   class="form-control"
                   :class="{ 'is-invalid': erros.descricao }"
                   rows="5"
+                  maxlength="10000"
+                  required
                 ></textarea>
-                <div v-if="erros.descricao" class="invalid-feedback">{{ erros.descricao }}</div>
+                <div class="invalid-feedback">{{ erros.descricao }}</div>
               </div>
-
-              <div class="row g-3">
+              <div class="row g-3 mb-3">
                 <div class="col-md-6">
-                  <label class="form-label fw-semibold" for="evento-data">Data e horário</label>
+                  <label for="inicio" class="form-label">Início</label>
                   <input
-                    id="evento-data"
+                    id="inicio"
                     v-model="dados.dataInicio"
+                    type="datetime-local"
                     class="form-control"
                     :class="{ 'is-invalid': erros.dataInicio }"
-                    type="datetime-local"
+                    required
                   />
-                  <div v-if="erros.dataInicio" class="invalid-feedback">{{ erros.dataInicio }}</div>
+                  <div class="invalid-feedback">{{ erros.dataInicio }}</div>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label fw-semibold" for="evento-local"
-                    >Local ou modalidade</label
-                  >
+                  <label for="fim" class="form-label">Término</label>
                   <input
-                    id="evento-local"
-                    v-model="dados.local"
+                    id="fim"
+                    v-model="dados.dataFim"
+                    type="datetime-local"
                     class="form-control"
-                    :class="{ 'is-invalid': erros.local }"
+                    :class="{ 'is-invalid': erros.dataFim }"
+                    required
                   />
-                  <div v-if="erros.local" class="invalid-feedback">{{ erros.local }}</div>
+                  <div class="invalid-feedback">{{ erros.dataFim }}</div>
                 </div>
               </div>
-            </div>
-          </section>
-
-          <section class="card border-0 shadow-sm mb-4">
-            <div class="card-body p-4">
-              <h2 class="h5 fw-bold mb-4">Inscrições e capacidade</h2>
-              <div class="form-check form-switch mb-3">
+              <div class="mb-4">
+                <label for="local" class="form-label">Local</label>
                 <input
-                  id="controla-vagas"
-                  v-model="dados.controlaVagas"
-                  class="form-check-input"
-                  type="checkbox"
-                  role="switch"
-                />
-                <label class="form-check-label fw-semibold" for="controla-vagas">
-                  Controlar limite de vagas
-                </label>
-              </div>
-              <div v-if="dados.controlaVagas" class="col-md-5">
-                <label class="form-label fw-semibold" for="evento-capacidade">Capacidade</label>
-                <input
-                  id="evento-capacidade"
-                  v-model.number="dados.capacidade"
+                  id="local"
+                  v-model="dados.local"
                   class="form-control"
-                  :class="{ 'is-invalid': erros.capacidade }"
-                  type="number"
-                  min="1"
+                  :class="{ 'is-invalid': erros.local }"
+                  maxlength="200"
+                  required
                 />
-                <div v-if="erros.capacidade" class="invalid-feedback">{{ erros.capacidade }}</div>
+                <div class="invalid-feedback">{{ erros.local }}</div>
+              </div>
+              <div class="d-flex justify-content-end gap-2">
+                <RouterLink class="btn btn-outline-secondary" to="/organizador">Voltar</RouterLink>
+                <button class="btn btn-primary-custom" type="submit">
+                  {{ salvando ? 'Salvando...' : 'Salvar rascunho' }}
+                </button>
               </div>
             </div>
-          </section>
-
-          <section class="card border-0 shadow-sm mb-4">
-            <div class="card-body p-4">
-              <MediaUploadField
-                id="banner-evento"
-                label="Banner do evento"
-                finalidade="BANNER_EVENTO"
-                ajuda="Proporção recomendada 16:9. JPEG, PNG ou WebP, até 5 MB."
-                @selecionar="banner = $event"
-              />
-            </div>
-          </section>
-
-          <div class="d-flex flex-column flex-sm-row justify-content-end gap-2">
-            <RouterLink class="btn btn-outline-secondary btn-lg" to="/organizador"
-              >Cancelar</RouterLink
-            >
-            <button class="btn btn-primary-custom btn-lg" type="submit">Salvar rascunho</button>
-          </div>
+          </fieldset>
         </form>
       </div>
-
       <aside class="col-lg-4">
-        <div class="card border-0 bg-primary-subtle sticky-lg-top">
+        <div class="card border-0 bg-primary-subtle">
           <div class="card-body p-4">
-            <h2 class="h5 fw-bold text-primary-custom">Fluxo preparado para REST + S3</h2>
-            <ol class="small text-secondary ps-3 mb-0">
-              <li class="mb-2">A API cria o evento como rascunho.</li>
-              <li class="mb-2">A API autoriza um upload específico.</li>
-              <li class="mb-2">O navegador envia o banner pela URL pré-assinada.</li>
-              <li>O backend associa a mídia ao evento.</li>
+            <h2 class="h5">Como funciona</h2>
+            <ol class="small ps-3">
+              <li>Preencha as informações do evento.</li>
+              <li>Salve o rascunho no banco de dados.</li>
+              <li>Publique no painel para aparecer no catálogo.</li>
             </ol>
+            <p class="small mb-0">
+              Imagens, inscrições e edição da programação ainda não estão disponíveis neste
+              formulário.
+            </p>
           </div>
         </div>
       </aside>
