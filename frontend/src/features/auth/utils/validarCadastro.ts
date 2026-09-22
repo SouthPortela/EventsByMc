@@ -3,6 +3,7 @@ export interface DadosCadastro {
   email: string
   senha: string
   confirmacaoSenha: string
+  perfil: 'PARTICIPANTE' | 'ORGANIZADOR'
   aceitouTermos: boolean
 }
 
@@ -16,6 +17,8 @@ export function validarCadastro(dados: DadosCadastro): ErrosCadastro {
     erros.email = 'Informe um e-mail válido.'
   if (dados.senha.length < 8) erros.senha = 'Use pelo menos 8 caracteres.'
   if (dados.confirmacaoSenha !== dados.senha) erros.confirmacaoSenha = 'As senhas não conferem.'
+  if (dados.perfil !== 'PARTICIPANTE' && dados.perfil !== 'ORGANIZADOR')
+    erros.perfil = 'Escolha participante ou organizador.'
   if (!dados.aceitouTermos) erros.aceitouTermos = 'Você precisa aceitar os termos para continuar.'
 
   return erros

@@ -15,6 +15,7 @@ const dados = reactive<DadosCadastro>({
   email: '',
   senha: '',
   confirmacaoSenha: '',
+  perfil: 'PARTICIPANTE',
   aceitouTermos: false,
 })
 const erros = ref<ErrosCadastro>({})
@@ -28,11 +29,13 @@ async function cadastrar(): Promise<void> {
 
   enviando.value = true
   try {
-    await cadastrarNaApi(dados.nome, dados.email, dados.senha)
+    await cadastrarNaApi(dados.nome, dados.email, dados.senha, dados.perfil)
     void router.push({ name: 'login', query: { cadastrado: '1' } })
   } catch (erro) {
     mensagem.value =
-      erro instanceof ApiError ? erro.message : 'Não foi possível concluir o cadastro. Tente novamente.'
+      erro instanceof ApiError
+        ? erro.message
+        : 'Não foi possível concluir o cadastro. Tente novamente.'
   } finally {
     enviando.value = false
   }
@@ -45,7 +48,7 @@ async function cadastrar(): Promise<void> {
       <div class="col-lg-7">
         <div class="text-center mb-4">
           <span class="badge rounded-pill text-bg-primary-subtle text-primary-custom mb-3"
-            >Novo participante</span
+            >Nova conta</span
           >
           <h1 class="h2 fw-bold">Crie sua conta</h1>
           <p class="text-muted">Uma conta para inscrições, agenda, frequência e avaliações.</p>
@@ -56,6 +59,37 @@ async function cadastrar(): Promise<void> {
             <div v-if="mensagem" class="alert alert-danger" role="status">{{ mensagem }}</div>
 
             <form novalidate @submit.prevent="cadastrar">
+              <fieldset class="mb-4">
+                <legend class="form-label fw-semibold">
+                  Como você pretende usar a plataforma?
+                </legend>
+                <div class="form-check">
+                  <input
+                    id="perfil-participante"
+                    v-model="dados.perfil"
+                    class="form-check-input"
+                    type="radio"
+                    name="perfil"
+                    value="PARTICIPANTE"
+                  />
+                  <label class="form-check-label" for="perfil-participante"
+                    >Participante — inscrever-se e confirmar presença</label
+                  >
+                </div>
+                <div class="form-check">
+                  <input
+                    id="perfil-organizador"
+                    v-model="dados.perfil"
+                    class="form-check-input"
+                    type="radio"
+                    name="perfil"
+                    value="ORGANIZADOR"
+                  />
+                  <label class="form-check-label" for="perfil-organizador"
+                    >Organizador — criar eventos e gerir chamadas</label
+                  >
+                </div>
+              </fieldset>
               <div class="mb-3">
                 <label class="form-label fw-semibold" for="cadastro-nome">Nome completo</label>
                 <input
@@ -128,7 +162,11 @@ async function cadastrar(): Promise<void> {
                 </div>
               </div>
 
-              <button class="btn btn-primary-custom btn-lg w-100 mt-4" type="submit" :disabled="enviando">
+              <button
+                class="btn btn-primary-custom btn-lg w-100 mt-4"
+                type="submit"
+                :disabled="enviando"
+              >
                 {{ enviando ? 'Criando conta…' : 'Criar conta' }}
               </button>
             </form>

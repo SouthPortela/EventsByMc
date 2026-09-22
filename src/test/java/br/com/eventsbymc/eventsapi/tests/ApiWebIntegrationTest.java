@@ -73,18 +73,18 @@ class ApiWebIntegrationTest {
         return mapper.readTree(resposta.body()).get("id").asText();
     }
     @Test void contaProtegidaNaoExpoeHashENaoVazaContextoEntreRequisicoes() throws Exception {
-        var visitante = RepositoriosEmMemoria.usuario(usuarios, Perfil.VISITANTE);
-        var resposta = pedir("GET", "/usuarios/me", token(visitante), null);
+        var participante = RepositoriosEmMemoria.usuario(usuarios, Perfil.PARTICIPANTE);
+        var resposta = pedir("GET", "/usuarios/me", token(participante), null);
         assertEquals(200, resposta.statusCode());
         JsonNode conta = mapper.readTree(resposta.body());
-        assertEquals(visitante.getId().toString(), conta.get("usuarioId").asText());
+        assertEquals(participante.getId().toString(), conta.get("usuarioId").asText());
         assertEquals(4, conta.size());
         assertFalse(resposta.body().contains("senha"));
         assertEquals("no-store", resposta.headers().firstValue("Cache-Control").orElseThrow());
         assertEquals(401, pedir("GET", "/usuarios/me", null, null).statusCode());
         assertEquals(401, pedir("GET", "/usuarios/me", "invalido", null).statusCode());
-        usuarios.removerPorId(visitante.getId());
-        assertEquals(401, pedir("GET", "/usuarios/me", token(visitante), null).statusCode());
+        usuarios.removerPorId(participante.getId());
+        assertEquals(401, pedir("GET", "/usuarios/me", token(participante), null).statusCode());
     }
     @Test void cadastroELoginMantemContratoExistente() throws Exception {
         String cadastro = "{\"nome\":\"Conta de teste\",\"email\":\"login@example.test\",\"senha\":\"SenhaTeste123!\"}";
@@ -95,7 +95,23 @@ class ApiWebIntegrationTest {
         assertEquals(200, login.statusCode(), login.body());
         JsonNode sessao = mapper.readTree(login.body());
         assertTrue(sessao.has("usuarioID"));
+        assertEquals("PARTICIPANTE", sessao.get("perfis").get(0).asText());
         assertEquals(200, pedir("GET", "/usuarios/me", sessao.get("token").asText(), null).statusCode());
+    }
+    @Test void cadastroOrganizadorPermiteCriarEventoMasCadastroAdminEVisitanteSaoRejeitados() throws Exception {
+        String baseCadastro = "{\"nome\":\"Conta de teste\",\"email\":\"%s\",\"senha\":\"SenhaTeste123!\",\"perfil\":\"%s\"}";
+        assertEquals(400, pedir("POST", "/usuarios", null,
+                baseCadastro.formatted("admin@example.test", "ADMINISTRADOR")).statusCode());
+        assertEquals(400, pedir("POST", "/usuarios", null,
+                baseCadastro.formatted("visitante@example.test", "VISITANTE")).statusCode());
+        assertEquals(200, pedir("POST", "/usuarios", null,
+                baseCadastro.formatted("organizador@example.test", "ORGANIZADOR")).statusCode());
+        var login = pedir("POST", "/auth/login", null,
+                "{\"email\":\"organizador@example.test\",\"senha\":\"SenhaTeste123!\"}");
+        assertEquals(200, login.statusCode());
+        var sessao = mapper.readTree(login.body());
+        assertEquals("ORGANIZADOR", sessao.get("perfis").get(0).asText());
+        assertEquals(201, pedir("POST", "/eventos", sessao.get("token").asText(), DADOS).statusCode());
     }
     @Test void rascunhoPublicacaoEEncerramentoPorHttp() throws Exception {
         String id = criar();

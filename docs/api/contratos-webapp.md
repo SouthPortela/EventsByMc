@@ -56,8 +56,8 @@ para dados fictícios quando a API falha.
    publicação só aparece depois de resposta positiva do servidor.
 
 `AccountView.vue` usa o `contaService.ts` que já havia sido criado. A rota
-`/conta` aceita também VISITANTE autenticado; o endereço anterior
-`/participante/conta` redireciona para ela. O login de visitante agora leva à conta.
+`/conta` aceita qualquer conta autenticada; o endereço anterior
+`/participante/conta` redireciona para ela. VISITANTE representa a navegação anônima.
 
 ## Contratos dos eventos
 
@@ -140,10 +140,11 @@ Um 401 de login não limpa outra sessão; uma resposta antiga também não limpa
 uma sessão cujo token já mudou. Uma página HTML devolvida por proxy incorreto
 é rejeitada, em vez de tratada como JSON de eventos.
 
-O cadastro continua atribuindo VISITANTE. A concessão legítima de ORGANIZADOR
-ou ADMINISTRADOR deve ser preparada pela equipe no ambiente de teste; não há
-seletor no frontend que conceda privilégios nem promoção automática nesta entrega.
-Após uma concessão de perfil, faça login novamente para obter um JWT atualizado.
+O cadastro público atribui PARTICIPANTE por padrão. O campo opcional `perfil`
+aceita `PARTICIPANTE` ou `ORGANIZADOR`; outros valores retornam 400, inclusive
+`VISITANTE` e `ADMINISTRADOR`. Para conceder administrador, use o procedimento
+controlado em [Banco e chamada de presença](../../db/README.md).
+Após mudar um perfil no banco, faça login novamente para obter um JWT atualizado.
 
 ## Executar e conferir localmente
 

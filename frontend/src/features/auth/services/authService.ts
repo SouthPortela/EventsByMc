@@ -19,10 +19,15 @@ export async function login(email: string, senha: string): Promise<LoginResposta
   })
 }
 
-export async function cadastrar(nome: string, email: string, senha: string): Promise<void> {
+export async function cadastrar(
+  nome: string,
+  email: string,
+  senha: string,
+  perfil: 'PARTICIPANTE' | 'ORGANIZADOR' = 'PARTICIPANTE',
+): Promise<void> {
   await apiRequest<string>('/usuarios', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nome, email, senha }),
+    body: JSON.stringify({ nome, email, senha, perfil }),
   })
 }

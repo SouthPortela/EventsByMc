@@ -5,6 +5,9 @@
 A V1 tinha quatro tabelas: usuários, perfis, eventos e atividades. A V2 acrescenta
 a base de inscrição e presença acordada: uma confirmação por atividade, inscrição
 ativa no evento e chamada válida por cinco minutos.
+A V3 converte contas antigas que tinham somente VISITANTE para PARTICIPANTE e
+remove VISITANTE de contas organizadoras/administradoras. VISITANTE passa a existir
+somente como estado anônimo no frontend, sem linha em `usuario_perfis`.
 
 | Tabela nova | Responsabilidade |
 |---|---|
@@ -26,10 +29,12 @@ As regras de unicidade e referência seguem os mecanismos nativos do
 **Nenhum destes scripts foi executado contra o seu banco pelo agente.**
 Confirme a conexão selecionada e faça backup antes de alterar um banco existente.
 
-- Banco vazio: execute `db/inicializar.sql` pelo psql. Ele inclui V1 e V2 em uma
+- Banco vazio: execute `db/inicializar.sql` pelo psql. Ele inclui V1, V2 e V3 em uma
   única transação; não cria contas nem insere senhas ou dados demonstrativos.
-- Banco que já possui exatamente a V1: execute `db/atualizar-v2.sql`.
-- Banco com V2 aplicada: não execute novamente. Consulte
+- Banco que já possui exatamente a V1: execute `db/atualizar-v2.sql` e depois
+  `db/atualizar-v3.sql`.
+- Banco com V2 aplicada: execute apenas `db/atualizar-v3.sql`.
+- Banco com V3 aplicada: não execute novamente. Consulte
   `SELECT * FROM versoes_schema ORDER BY versao;`.
 - Banco parcialmente modificado/manualmente diferente da V1: compare o esquema
   antes. Não use o inicializador para tentar “consertar” esse banco.
@@ -48,13 +53,13 @@ Em seguida, na raiz deste repositório, substitua os parâmetros:
 psql -X -h localhost -U SEU_USUARIO -d events_dev -W -f db/inicializar.sql
 ```
 
-Para atualizar um banco V1, use os mesmos parâmetros de conexão e troque o último
-arquivo por `db/atualizar-v2.sql`. A senha é solicitada interativamente; não colocar
+Para atualizar um banco V1, use os mesmos parâmetros de conexão e execute
+`db/atualizar-v2.sql`, depois `db/atualizar-v3.sql`. A senha é solicitada interativamente; não colocar
 senha no SQL, no frontend ou no histórico do terminal.
 
 Os comandos `\ir` e `\set` são do psql, não do Query Tool do pgAdmin.
-No pgAdmin, para um banco vazio, execute o conteúdo de V1 e V2, nessa ordem, dentro
-de `BEGIN;` / `COMMIT;`. Para um banco V1, execute somente V2 dentro da transação.
+No pgAdmin, para um banco vazio, execute o conteúdo de V1, V2 e V3, nessa ordem, dentro
+de `BEGIN;` / `COMMIT;`. Para um banco V1, execute V2 e V3 nessa ordem.
 Se houver erro, use `ROLLBACK;` e investigue; não prossiga executando trechos avulsos.
 
 A V1 foi preservada. A V2 não usa DROP/TRUNCATE e recusa períodos incompletos
@@ -62,13 +67,60 @@ A V1 foi preservada. A V2 não usa DROP/TRUNCATE e recusa períodos incompletos
 falha e precisa de uma correção de dados previamente revisada.
 Os scripts não são de reaplicação silenciosa: executar uma versão duas vezes gera erro.
 O backend não aplica migrações automaticamente.
+No Docker Compose, o contêiner PostgreSQL executa V1, V2 e V3 quando o volume
+está vazio. Em um volume já inicializado, aplique V3 manualmente após backup.
+Para um volume Docker que já possui V2, abra `docker compose exec postgres-db sh`,
+entre no `psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"`, confirme que a versão 3
+ainda não aparece em `SELECT * FROM versoes_schema ORDER BY versao;` e execute:
+
+```sql
+\set ON_ERROR_STOP on
+BEGIN;
+\i /docker-entrypoint-initdb.d/V3__perfis_de_contas_autenticadas.sql
+COMMIT;
+```
+
+Essa pasta está montada no contêiner pelo Compose. Não use `docker compose down -v`
+para atualizar perfis, pois isso apagaria o banco persistido.
 
 Depois, configure no processo Java `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` e
 `JWT_SECRET`, usando suas próprias credenciais. Use Java 21.
 
+## Criar o primeiro administrador
+
+Cadastre normalmente a conta pelo site e confirme que ela existe no banco. O
+cadastro público nunca aceita ADMINISTRADOR. Quem tem acesso administrativo ao
+PostgreSQL pode conceder esse perfil diretamente, de forma controlada. Com o
+Compose em execução, abra o terminal do banco:
+
+```powershell
+docker compose exec postgres-db sh
+psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+```
+
+No prompt `psql`, substitua o e-mail pelo da conta cadastrada:
+
+```sql
+\set email 'admin@exemplo.com'
+SELECT id, email FROM usuarios WHERE email = :'email';
+BEGIN;
+INSERT INTO usuario_perfis(usuario_id, perfil)
+SELECT id, 'ADMINISTRADOR' FROM usuarios WHERE email = :'email'
+ON CONFLICT DO NOTHING;
+COMMIT;
+SELECT u.email, p.perfil FROM usuarios u
+JOIN usuario_perfis p ON p.usuario_id = u.id
+WHERE u.email = :'email';
+```
+
+Se a primeira consulta não retornar exatamente a conta desejada, não execute o
+`INSERT`. O comando preserva outros perfis da conta, sem modificar senha ou JWT.
+Saia da sessão do site e entre novamente: o login emitirá token e menus com o
+perfil ADMINISTRADOR. Execute esse procedimento apenas em um banco sob seu controle.
+
 ## Testar o fluxo
 
-1. Use uma conta de organizador autorizada pela equipe. Crie um evento com período
+1. Cadastre uma conta como organizador. Crie um evento com período
    e local, e publique-o pelo painel.
 2. Acesse Organizador → Frequência (`/organizador/frequencia`).
 3. Selecione o evento e abra “Cadastrar atividade”. O período deve caber no evento.
@@ -80,8 +132,9 @@ Depois, configure no processo Java `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` e
 7. Repita dentro da validade: o servidor informa a presença já existente.
    Gere outra chamada: o código anterior deve ser rejeitado.
 
-Inscrever-se adiciona o perfil PARTICIPANTE no banco. O token atual não ganha novos
-perfis sozinho: faça login novamente para atualizar os menus de perfil. A página
+Contas novas já têm perfil PARTICIPANTE ou ORGANIZADOR. A inscrição adiciona
+PARTICIPANTE a uma conta organizadora que também participe. O token atual não ganha
+novos perfis sozinho: faça login novamente para atualizar os menus de perfil. A página
 `/presenca` permite confirmar com qualquer sessão válida cuja conta tenha inscrição
 ativa; ela não depende do menu nem confia em um perfil editado no navegador.
 
@@ -145,9 +198,9 @@ isso não transforma este mecanismo de frequência em autenticação multifator.
 
 ## Verificação automatizada
 
-Na validação de 22/09/2026: 37 testes frontend aprovados; build, Oxlint e ESLint
-aprovados; 32 testes Java aprovados e 6 testes dependentes de banco ignorados;
-2 cenários SQL aprovados em PostgreSQL embarcado.
+Na validação de 22/09/2026: 39 testes frontend aprovados; build, Oxlint e ESLint
+aprovados; 33 testes Java aprovados e 6 testes dependentes de banco ignorados;
+3 cenários SQL aprovados em PostgreSQL embarcado.
 
 O audit do npm apontou dois avisos moderados no Vitest/@vitest/mocker já utilizado
 no projeto (GHSA-82fw-gwwq-j7x9), não na biblioteca de QR. A atualização do conjunto
@@ -157,7 +210,7 @@ O Checkstyle não está configurado/disponível no cache Maven desta máquina.
 - Frontend: `npm run test:run`, `npm run build`, Oxlint e ESLint.
 - Java: `mvn test`, com os testes de transporte usando servidor/JWT reais e dublês
   das portas de persistência. Os testes dependentes de banco continuam condicionais.
-- SQL: `db/tests/schema.mjs` testa V1+V2 em banco vazio, atualização preservando
+- SQL: `db/tests/schema.mjs` testa V1+V2+V3 em banco vazio, atualização preservando
   registros, unicidade, FKs, períodos, validade e limite de tentativas. Também
   verifica as consultas reais do adaptador por EXPLAIN, sem executar suas escritas.
 

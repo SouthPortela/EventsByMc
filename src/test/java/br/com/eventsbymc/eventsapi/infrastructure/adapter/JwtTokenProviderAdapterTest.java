@@ -19,7 +19,7 @@ class JwtTokenProviderAdapterTest {
     void deveGerarEValidarTokenComOsMesmosDados() {
         JwtTokenProviderAdapter provider = new JwtTokenProviderAdapter(SEGREDO_VALIDO, 60);
         UUID usuarioId = UUID.randomUUID();
-        Set<Perfil> perfis = Set.of(Perfil.ORGANIZADOR, Perfil.VISITANTE);
+        Set<Perfil> perfis = Set.of(Perfil.ORGANIZADOR, Perfil.PARTICIPANTE);
 
         String token = provider.gerarToken(usuarioId, "ana@exemplo.com", perfis);
         TokenClaims claims = provider.validarToken(token);
@@ -32,7 +32,7 @@ class JwtTokenProviderAdapterTest {
     @Test
     void deveRejeitarTokenExpirado() {
         JwtTokenProviderAdapter provider = new JwtTokenProviderAdapter(SEGREDO_VALIDO, -1);
-        String tokenExpirado = provider.gerarToken(UUID.randomUUID(), "ana@exemplo.com", Set.of(Perfil.VISITANTE));
+        String tokenExpirado = provider.gerarToken(UUID.randomUUID(), "ana@exemplo.com", Set.of(Perfil.PARTICIPANTE));
 
         assertThrows(TokenInvalidoException.class, () -> provider.validarToken(tokenExpirado));
     }

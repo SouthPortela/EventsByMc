@@ -77,8 +77,8 @@ class EventosUseCaseTest {
         assertEquals(1, evento.getProgramacao().consultarAtividades().size());
         assertThrows(IllegalStateException.class, () -> evento.adicionarAtividade(atividade));
     }
-    @Test void contaAceitaVisitanteEBuscaDadosAtuais() {
-        var visitante = RepositoriosEmMemoria.usuario(usuarios, Perfil.VISITANTE);
+    @Test void contaAceitaParticipanteEBuscaDadosAtuais() {
+        var visitante = RepositoriosEmMemoria.usuario(usuarios, Perfil.PARTICIPANTE);
         var conta = new ConsultarMinhaContaUseCase(usuarios);
         assertEquals(visitante.getId(), conta.executar(visitante.getId()).usuarioId());
         assertThrows(UnsupportedOperationException.class, () -> conta.executar(visitante.getId()).perfis().clear());
