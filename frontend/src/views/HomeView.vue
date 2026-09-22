@@ -63,7 +63,7 @@ const eventosFiltrados = computed(() => {
   const categoria = categorias.find((item) => item.nome === categoriaAtiva.value)
 
   return eventos.value.filter((evento) => {
-    const conteudo = normalizarTexto(`${evento.titulo} ${evento.local} ${evento.categoria}`)
+    const conteudo = normalizarTexto(`${evento.titulo} ${evento.local} ${evento.categoria ?? ''}`)
     const correspondeBusca = !termo || conteudo.includes(termo)
     const correspondeCategoria =
       !categoria || categoria.termos.some((item) => conteudo.includes(normalizarTexto(item)))
@@ -74,6 +74,8 @@ const eventosFiltrados = computed(() => {
 const eventosVisiveis = computed(() => eventosFiltrados.value.slice(0, limite.value))
 
 async function carregarEventos(): Promise<void> {
+  carregando.value = true
+  mensagemErro.value = ''
   try {
     eventos.value = await listarEventos()
   } catch {
@@ -134,7 +136,7 @@ onMounted(carregarEventos)
       </div>
     </section>
 
-    <section class="bg-white py-5">
+    <section v-if="destaques.length" class="bg-white py-5">
       <div class="container py-lg-4">
         <div class="d-flex justify-content-between align-items-end gap-3 mb-4">
           <div>
@@ -213,7 +215,11 @@ onMounted(carregarEventos)
 
         <div v-if="mensagemErro" class="alert alert-danger" role="alert">
           {{ mensagemErro }}
+          <button class="btn btn-outline-danger ms-2" @click="carregarEventos">
+            Tentar novamente
+          </button>
         </div>
+        <p v-else-if="carregando" role="status">Carregando eventos...</p>
         <EventGrid v-else-if="!carregando" :eventos="eventosVisiveis" />
         <div v-if="eventosFiltrados.length > eventosVisiveis.length" class="text-center mt-5">
           <button

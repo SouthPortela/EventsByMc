@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterLink, RouterView, useRoute } from 'vue-router'
 import AppIcon, { type IconName } from '@/components/icons/AppIcon.vue'
 import { PERFIL_LABEL } from '@/features/auth/types/perfil'
 import { useAuthStore } from '@/stores/auth'
@@ -12,6 +12,7 @@ interface NavItem {
 }
 
 const auth = useAuthStore()
+const route = useRoute()
 const itens = computed<NavItem[]>(() => {
   if (auth.perfil === 'ADMINISTRADOR')
     return [
@@ -62,7 +63,12 @@ const itens = computed<NavItem[]>(() => {
           </RouterLink>
         </nav>
       </aside>
-      <div class="col-lg-9 col-xl-10 bg-light min-vh-100"><RouterView /></div>
+      <div class="col-lg-9 col-xl-10 bg-light min-vh-100">
+        <div v-if="route.meta.apiPendente" class="alert alert-warning m-4 mb-0" role="status">
+          Esta tela ainda é demonstrativa. Os dados e ações abaixo não estão conectados à API.
+        </div>
+        <RouterView />
+      </div>
     </div>
   </div>
 </template>

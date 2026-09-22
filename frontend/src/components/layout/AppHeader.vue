@@ -15,7 +15,7 @@ const menuAberto = ref(false)
 const painelInicial = computed(() => {
   if (auth.perfil === 'ADMINISTRADOR') return '/admin'
   if (auth.perfil === 'ORGANIZADOR') return '/organizador'
-  return '/participante'
+  return auth.perfil === 'PARTICIPANTE' ? '/participante' : '/conta'
 })
 
 function pesquisar(): void {
@@ -49,7 +49,8 @@ watch(
               <span class="navbar-brand-text mb-0 lh-1">
                 Events<span class="text-secondary fw-medium">ByMc</span>
               </span>
-              <span class="navbar-brand-subtitle d-none d-sm-block"
+
+              <span class="navbar-brand-subtitle d-none d-sm-block mt-lg-0"
                 >Plataforma de Gestão de Eventos</span
               >
             </span>
@@ -110,6 +111,10 @@ watch(
               {{ PERFIL_LABEL[auth.perfil] }}
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
+              <li><RouterLink class="dropdown-item" to="/conta">Minha conta</RouterLink></li>
+              <li>
+                <RouterLink class="dropdown-item" to="/presenca">Confirmar presença</RouterLink>
+              </li>
               <li>
                 <RouterLink class="dropdown-item" :to="painelInicial">Acessar painel</RouterLink>
               </li>
@@ -169,6 +174,12 @@ watch(
             >
           </template>
           <template v-else>
+            <RouterLink class="text-primary-custom text-decoration-none py-2 px-2" to="/presenca"
+              >Confirmar presença</RouterLink
+            >
+            <RouterLink class="text-primary-custom text-decoration-none py-2 px-2" to="/conta"
+              >Minha conta</RouterLink
+            >
             <RouterLink
               class="text-primary-custom text-decoration-none py-2 px-2 rounded fw-bold"
               :to="painelInicial"

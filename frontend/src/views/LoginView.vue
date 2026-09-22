@@ -12,7 +12,9 @@ const email = ref('')
 const senha = ref('')
 const erros = ref<ErrosLogin>({})
 const mensagem = ref(
-  route.query.cadastrado === '1' ? 'Cadastro realizado com sucesso. Faça login para continuar.' : '',
+  route.query.cadastrado === '1'
+    ? 'Cadastro realizado com sucesso. Faça login para continuar.'
+    : '',
 )
 const tipoMensagem = ref<'info' | 'danger'>('info')
 const entrando = ref(false)
@@ -23,7 +25,7 @@ function destinoPorPerfil(): string {
   if (auth.perfil === 'PARTICIPANTE') return '/participante'
   // VISITANTE (ex.: quem acabou de se cadastrar e ainda não se inscreveu em nada)
   // não tem painel próprio — /participante exige nível PARTICIPANTE e bloquearia.
-  return '/'
+  return '/conta'
 }
 
 async function entrar(): Promise<void> {
@@ -42,7 +44,8 @@ async function entrar(): Promise<void> {
     void router.push(destinoSeguro)
   } catch (erro) {
     tipoMensagem.value = 'danger'
-    mensagem.value = erro instanceof ApiError ? erro.message : 'Não foi possível entrar. Tente novamente.'
+    mensagem.value =
+      erro instanceof ApiError ? erro.message : 'Não foi possível entrar. Tente novamente.'
   } finally {
     entrando.value = false
   }
@@ -109,7 +112,11 @@ async function entrar(): Promise<void> {
                     <div v-if="erros.senha" class="invalid-feedback">{{ erros.senha }}</div>
                   </div>
 
-                  <button class="btn btn-primary-custom btn-lg w-100" type="submit" :disabled="entrando">
+                  <button
+                    class="btn btn-primary-custom btn-lg w-100"
+                    type="submit"
+                    :disabled="entrando"
+                  >
                     {{ entrando ? 'Entrando…' : 'Entrar' }}
                   </button>
                 </form>
