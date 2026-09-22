@@ -150,15 +150,20 @@ watch(() => route.params.id, carregarEvento, { immediate: true })
               >
                 <div class="card-body p-4">
                   <div class="row align-items-center g-3">
-                    <div class="col-sm-2">
-                      <span class="badge text-bg-primary-subtle text-primary-custom px-3 py-2">
-                        {{ atividade.horario }}
-                      </span>
+                    <!-- Horário ajustado para col-sm-auto -->
+                    <div class="col-sm-auto">
+                <span class="badge text-bg-primary-subtle text-primary-custom px-3 py-2">
+                  {{ atividade.horario }}
+                </span>
                     </div>
-                    <div class="col-sm-7">
+                    <!-- Título ajustado para col-sm (preenche o meio) e text-sm-center -->
+                    <div class="col-sm text-sm-center">
                       <h3 class="h6 fw-bold mb-0">{{ atividade.titulo }}</h3>
                     </div>
-                    <div class="col-sm-3 text-sm-end text-muted small">{{ atividade.local }}</div>
+                    <!-- Local ajustado para col-sm-auto -->
+                    <div class="col-sm-auto text-sm-end text-muted small">
+                      {{ atividade.local }}
+                    </div>
                   </div>
                 </div>
               </article>
