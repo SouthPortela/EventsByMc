@@ -113,6 +113,18 @@ class ApiWebIntegrationTest {
         assertEquals("ORGANIZADOR", sessao.get("perfis").get(0).asText());
         assertEquals(201, pedir("POST", "/eventos", sessao.get("token").asText(), DADOS).statusCode());
     }
+    @Test void participacaoExigeJwtERetornaSomenteDadosDoUsuario() throws Exception {
+        assertEquals(401, pedir("GET", "/usuarios/me/participacao", null, null).statusCode());
+        var participante = RepositoriosEmMemoria.usuario(usuarios, Perfil.PARTICIPANTE);
+        var inscricao = new DadosPresenca.InscricaoResumo(UUID.randomUUID(), UUID.randomUUID(),
+                "Simpósio", null, null, "Auditório", "PUBLICADO", "ATIVA", java.time.Instant.now());
+        presencas.participacao = new DadosPresenca.Participacao(java.util.List.of(inscricao), java.util.List.of(), 0);
+        var resposta = pedir("GET", "/usuarios/me/participacao", token(participante), null);
+        assertEquals(200, resposta.statusCode(), resposta.body());
+        assertEquals(participante.getId(), presencas.consultaUsuarioId);
+        assertEquals("Simpósio", mapper.readTree(resposta.body()).get("inscricoes").get(0).get("eventoTitulo").asText());
+        assertEquals("no-store", resposta.headers().firstValue("Cache-Control").orElseThrow());
+    }
     @Test void rascunhoPublicacaoEEncerramentoPorHttp() throws Exception {
         String id = criar();
         assertEquals(404, pedir("GET", "/eventos/" + id, null, null).statusCode());

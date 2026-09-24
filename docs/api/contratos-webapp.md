@@ -20,6 +20,7 @@ Não foram adicionadas dependências, tabelas, credenciais ou configurações de
 | Cadastro | POST /api/usuarios | Público; contrato anterior preservado |
 | Login | POST /api/auth/login | Público; contrato anterior preservado |
 | Minha conta | GET /api/usuarios/me | Qualquer usuário autenticado |
+| Minha participação | GET /api/usuarios/me/participacao | Inscrições, agenda e presenças da própria conta |
 | Catálogo | GET /api/eventos | Público; apenas PUBLICADO |
 | Detalhes | GET /api/eventos/{id} | Público; apenas PUBLICADO |
 | Meus eventos | GET /api/usuarios/me/eventos | Organizador/admin; somente eventos próprios |
@@ -175,9 +176,9 @@ antes de reenviar. Ainda não existe chave de idempotência para criação.
 
 ## Testes e limitações
 
-Resultado desta validação: 32 testes frontend aprovados; build e lint frontend
-aprovados. No Java, 25 testes aprovados e 6 testes dependentes de banco ignorados
-(31 descobertos, nenhuma falha na execução final).
+Resultado desta validação: 42 testes frontend aprovados; build e lint frontend
+aprovados. No Java, 35 testes aprovados e 6 testes dependentes de banco ignorados
+(41 descobertos, nenhuma falha na execução final). Também passaram 3 cenários SQL.
 
 - `npm run test:run`: cliente HTTP, mapeamento dos eventos, criação, publicação,
   encerramento, validação e regressões dos utilitários.
@@ -197,11 +198,11 @@ aprovados. No Java, 25 testes aprovados e 6 testes dependentes de banco ignorado
 - Ainda é necessária validação ponta a ponta com Vue, Java e PostgreSQL de
   desenvolvimento juntos. Não foi feita implantação nem alteração de dados reais.
 
-Ainda não há integração de inscrições, presença/QR, avaliações, relatórios,
-administração global, edição de conta, imagens no banco ou edição de eventos/atividades.
-Esses fluxos exigem casos de uso, contratos e testes próprios; os painéis ainda
-demonstrativos agora exibem um aviso. Inscrição e upload nas telas conectadas não
-simulam uma confirmação de persistência. Não foi implementado bucket S3.
+Inscrição, atividades e presença por QR/código foram integradas posteriormente;
+consulte [o contrato atualizado](presenca.md). O módulo do participante mostra
+inscrições, agenda e presenças reais. Avaliações, relatórios, administração global,
+edição de conta, imagens no banco e edição de eventos continuam pendentes.
+Os painéis ainda demonstrativos exibem um aviso. Não foi implementado bucket S3.
 
 Também permanecem como evolução: paginação/filtros no servidor (a busca do catálogo
 continua local), otimização das consultas de listagem, limites de requisição e

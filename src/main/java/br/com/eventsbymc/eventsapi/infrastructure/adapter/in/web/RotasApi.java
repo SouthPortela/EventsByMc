@@ -13,6 +13,7 @@ public final class RotasApi {
     public static Router adicionarPresenca(Router router,
             br.com.eventsbymc.eventsapi.application.port.in.OperacoesPresenca caso, ObjectMapper mapper) {
         return router
+                .registrar("GET", "/usuarios/me/participacao", new PresencaHandler(caso, mapper, PresencaHandler.Acao.CONSULTAR_PARTICIPACAO))
                 .registrar("POST", "/eventos/{id}/inscricoes", new PresencaHandler(caso, mapper, PresencaHandler.Acao.INSCREVER))
                 .registrar("GET", "/eventos/{id}/atividades", new PresencaHandler(caso, mapper, PresencaHandler.Acao.LISTAR_ATIVIDADES))
                 .registrar("POST", "/eventos/{id}/atividades", new PresencaHandler(caso, mapper, PresencaHandler.Acao.CRIAR_ATIVIDADE))

@@ -12,6 +12,12 @@ final class PresencasFake implements PresencaRepository {
     int tentativas;
     String hashRecebido;
     Atividade atividade;
+    UUID consultaUsuarioId;
+    DadosPresenca.Participacao participacao = new DadosPresenca.Participacao(List.of(), List.of(), 0);
+    public DadosPresenca.Participacao consultarParticipacao(UUID usuarioId) {
+        consultaUsuarioId = usuarioId;
+        return participacao;
+    }
     public DadosPresenca.Inscricao inscrever(UUID usuario, UUID evento) {
         return new DadosPresenca.Inscricao(UUID.randomUUID(), "ATIVA");
     }

@@ -13,13 +13,21 @@ interface NavItem {
 
 const auth = useAuthStore()
 const route = useRoute()
+const itensParticipante: NavItem[] = [
+  { label: 'Visão geral', to: '/participante', icon: 'dashboard' },
+  { label: 'Minhas inscrições', to: '/participante/inscricoes', icon: 'ticket' },
+  { label: 'Minha agenda', to: '/participante/agenda', icon: 'calendar' },
+  { label: 'Minha conta', to: '/participante/conta', icon: 'user' },
+]
 const itens = computed<NavItem[]>(() => {
+  if (route.path.startsWith('/participante')) return itensParticipante
   if (auth.perfil === 'ADMINISTRADOR')
     return [
       { label: 'Visão geral', to: '/admin', icon: 'dashboard' },
       { label: 'Usuários', to: '/admin/usuarios', icon: 'users' },
       { label: 'Eventos', to: '/admin/eventos', icon: 'calendar' },
       { label: 'Auditoria', to: '/admin/auditoria', icon: 'shield' },
+      { label: 'Minha participação', to: '/participante', icon: 'ticket' },
     ]
   if (auth.perfil === 'ORGANIZADOR')
     return [
@@ -28,13 +36,9 @@ const itens = computed<NavItem[]>(() => {
       { label: 'Inscrições', to: '/organizador/inscricoes', icon: 'users' },
       { label: 'Frequência', to: '/organizador/frequencia', icon: 'check' },
       { label: 'Relatórios', to: '/organizador/relatorios', icon: 'report' },
+      { label: 'Minha participação', to: '/participante', icon: 'ticket' },
     ]
-  return [
-    { label: 'Visão geral', to: '/participante', icon: 'dashboard' },
-    { label: 'Minhas inscrições', to: '/participante/inscricoes', icon: 'ticket' },
-    { label: 'Minha agenda', to: '/participante/agenda', icon: 'calendar' },
-    { label: 'Minha conta', to: '/participante/conta', icon: 'user' },
-  ]
+  return itensParticipante
 })
 </script>
 

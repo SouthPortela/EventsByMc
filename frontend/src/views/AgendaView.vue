@@ -1,26 +1,10 @@
 <script setup lang="ts">
+import { RouterLink } from 'vue-router'
 import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader.vue'
+import { useParticipacao } from '@/features/attendance/composables/useParticipacao'
+import { formatarData } from '@/features/events/utils/formatarData'
 
-const atividades = [
-  {
-    id: 1,
-    data: '10 SET',
-    horario: '19:00',
-    titulo: 'Abertura e Tendências de Ameaças',
-    evento: 'Simpósio de Cibersegurança e Defesa',
-    local: 'Auditório Principal',
-    presenca: 'PENDENTE',
-  },
-  {
-    id: 2,
-    data: '10 SET',
-    horario: '19:45',
-    titulo: 'Segurança em APIs REST e OAuth2',
-    evento: 'Simpósio de Cibersegurança e Defesa',
-    local: 'Auditório Principal',
-    presenca: 'PENDENTE',
-  },
-]
+const { dados, carregando, erro, recarregar } = useParticipacao()
 </script>
 
 <template>
@@ -28,36 +12,53 @@ const atividades = [
     <DashboardPageHeader
       eyebrow="Área do participante"
       title="Minha agenda"
-      description="Atividades escolhidas em ordem cronológica."
+      description="Atividades dos eventos em que sua inscrição está ativa, em ordem cronológica."
     >
-      <template #actions>
-        <span class="badge rounded-pill text-bg-primary-subtle text-primary px-3 py-2">
-          {{ atividades.length }} atividades
-        </span>
-      </template>
+      <template #actions
+        ><span v-if="dados" class="badge rounded-pill text-bg-primary-subtle text-primary px-3 py-2"
+          >{{ dados.atividades.length }} atividades</span
+        ></template
+      >
     </DashboardPageHeader>
 
-    <div class="alert alert-primary border-0" role="alert">
-      A API validará vagas e conflitos de horário antes de confirmar cada atividade na agenda.
+    <p v-if="carregando" role="status">Carregando agenda...</p>
+    <div v-else-if="erro" class="alert alert-warning" role="alert">
+      {{ erro }}
+      <button class="btn btn-outline-primary ms-3" type="button" @click="recarregar">
+        Tentar novamente
+      </button>
     </div>
-
-    <div class="vstack gap-3">
-      <article v-for="atividade in atividades" :key="atividade.id" class="card border-0 shadow-sm">
+    <div v-else-if="!dados?.atividades.length" class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        Ainda não há atividades nos seus eventos inscritos.
+        <RouterLink to="/">Explorar eventos</RouterLink>
+      </div>
+    </div>
+    <div v-else class="vstack gap-3">
+      <article
+        v-for="atividade in dados.atividades"
+        :key="atividade.id"
+        class="card border-0 shadow-sm"
+      >
         <div class="card-body p-4">
           <div class="row align-items-center g-3">
-            <div class="col-4 col-md-2 col-lg-1 text-center">
-              <div class="bg-primary-subtle text-primary rounded-3 p-2">
-                <span class="fw-bold d-block">{{ atividade.data }}</span>
-                <span class="small">{{ atividade.horario }}</span>
-              </div>
+            <div class="col-md-2">
+              <span class="small fw-semibold text-primary">{{
+                formatarData(atividade.dataInicio)
+              }}</span>
             </div>
-            <div class="col-8 col-md-7 col-lg-8">
+            <div class="col-md-7">
               <h2 class="h5 fw-bold mb-1">{{ atividade.titulo }}</h2>
-              <p class="text-muted mb-1">{{ atividade.evento }}</p>
-              <p class="small text-secondary mb-0">{{ atividade.local }}</p>
+              <p class="text-muted mb-1">{{ atividade.eventoTitulo }}</p>
+              <p class="small text-secondary mb-0">{{ atividade.local ?? 'Local a divulgar' }}</p>
             </div>
             <div class="col-md-3 text-md-end">
-              <span class="badge text-bg-warning">Presença pendente</span>
+              <span v-if="atividade.presencaRegistradaEm" class="badge text-bg-success"
+                >Presença confirmada</span
+              >
+              <RouterLink v-else class="btn btn-sm btn-outline-primary-custom" to="/presenca"
+                >Confirmar presença</RouterLink
+              >
             </div>
           </div>
         </div>

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface OperacoesPresenca {
+    DadosPresenca.Participacao consultarParticipacao(UUID usuarioId);
     DadosPresenca.Inscricao inscrever(UUID usuarioId, UUID eventoId);
     List<DadosPresenca.Atividade> listarAtividades(UUID usuarioId, UUID eventoId);
     DadosPresenca.Atividade criarAtividade(UUID usuarioId, UUID eventoId, DadosPresenca.NovaAtividade dados);

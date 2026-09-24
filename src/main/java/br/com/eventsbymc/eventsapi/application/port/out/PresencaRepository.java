@@ -8,6 +8,7 @@ import java.util.UUID;
 
 // Operações atômicas: inscrição, emissão/revogação e confirmação com unicidade.
 public interface PresencaRepository {
+    DadosPresenca.Participacao consultarParticipacao(UUID usuarioId);
     DadosPresenca.Inscricao inscrever(UUID usuarioId, UUID eventoId);
     List<DadosPresenca.Atividade> listarAtividades(UUID eventoId);
     void adicionarAtividade(UUID eventoId, Atividade atividade);

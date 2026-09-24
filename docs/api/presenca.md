@@ -7,6 +7,7 @@ As tabelas da V2 são pré-requisito. Consulte [preparação do banco](../../db/
 | Método | Caminho | Acesso / resultado |
 |---|---|---|
 | POST | /eventos/{id}/inscricoes | Usuário autenticado; 200 com inscrição ativa, sem duplicar |
+| GET | /usuarios/me/participacao | Usuário autenticado; inscrições, agenda e total de presenças da própria conta |
 | GET | /eventos/{id}/atividades | Dono organizador/admin; 200 com atividades |
 | POST | /eventos/{id}/atividades | Dono organizador/admin; 201 com atividade criada |
 | POST | /atividades/{id}/chamadas | Dono organizador/admin; 201 com chamada temporária |
@@ -14,6 +15,14 @@ As tabelas da V2 são pré-requisito. Consulte [preparação do banco](../../db/
 
 Inscrição e geração de chamada não precisam de body.
 Criação de atividade e confirmação exigem application/json, com limite de 64 KiB.
+
+`GET /usuarios/me/participacao` usa exclusivamente a identidade do JWT validado;
+não recebe ID de usuário enviado pelo navegador. A resposta inclui `inscricoes`
+(ativas ou canceladas, com título, período, local e estado do evento), `atividades`
+dos eventos com inscrição ativa (com data de presença, quando houver) e
+`totalPresencas` do histórico. Não fornece e-mail de terceiros nem códigos de QR.
+Atividades sem horário podem ter `dataInicio` e `dataFim` nulos. A agenda é o
+cronograma dos eventos inscritos; ainda não existe reserva por atividade.
 
 Exemplo de nova atividade:
 
@@ -94,6 +103,8 @@ Erros usam o contrato anterior {mensagem, instante}:
 - AttendanceManagementView.vue: seleção de evento/atividade, criação de atividade e QR.
 - ConfirmAttendanceView.vue: recepção do código, login sem propagar código na query e POST explícito.
 - EventDetailsView.vue: inscrição real antes da confirmação de presença.
+- ParticipantDashboardView.vue, ParticipantRegistrationsView.vue e AgendaView.vue:
+  usam a consulta autenticada da participação, sem dados de demonstração.
 
 Não há acoplamento com Spring nem imagens de QR armazenadas no banco. O QR é
 apenas a representação visual de um link contendo o código temporário.

@@ -59,6 +59,13 @@ class PresencaUseCaseTest {
         assertEquals("ATIVA", caso.inscrever(participante.getId(), UUID.randomUUID()).estado());
         assertThrows(TokenInvalidoException.class, () -> caso.inscrever(UUID.randomUUID(), UUID.randomUUID()));
     }
+    @Test void resumoDaParticipacaoUsaIdentidadeAutenticada() {
+        var participante = RepositoriosEmMemoria.usuario(usuarios, Perfil.PARTICIPANTE);
+        var resultado = caso.consultarParticipacao(participante.getId());
+        assertEquals(participante.getId(), repo.consultaUsuarioId);
+        assertTrue(resultado.inscricoes().isEmpty());
+        assertThrows(TokenInvalidoException.class, () -> caso.consultarParticipacao(UUID.randomUUID()));
+    }
     @Test void validadeNaoIncluiInstanteDaExpiracaoENaoAceitaRevogacao() {
         Instant inicio = Instant.parse("2026-10-10T12:00:00Z");
         Instant fim = inicio.plus(RegrasChamada.VALIDADE);

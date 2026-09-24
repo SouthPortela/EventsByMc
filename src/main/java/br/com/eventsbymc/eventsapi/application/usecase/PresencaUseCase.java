@@ -29,6 +29,10 @@ public final class PresencaUseCase implements OperacoesPresenca {
             throw new AcessoNegadoException();
         return evento;
     }
+    public DadosPresenca.Participacao consultarParticipacao(UUID usuarioId) {
+        usuario(usuarioId);
+        return presencas.consultarParticipacao(usuarioId);
+    }
     public DadosPresenca.Inscricao inscrever(UUID usuarioId, UUID eventoId) {
         usuario(usuarioId);
         return presencas.inscrever(usuarioId, eventoId);
