@@ -14,27 +14,46 @@ public class Evento {
     private final LocalDateTime inicio;
     private final LocalDateTime fim;
     private final String local;
+    private CategoriaEvento categoria;
 
     private EstadoEvento estado;
 
     public Evento(String titulo, String descricao, Usuario organizador) {
-        this(UUID.randomUUID(), titulo, descricao, organizador, null, null, null, EstadoEvento.RASCUNHO, false);
+        this(UUID.randomUUID(), titulo, descricao, organizador, null, null, null, CategoriaEvento.OUTROS, EstadoEvento.RASCUNHO, false);
     }
 
     public Evento(String titulo, String descricao, Usuario organizador, LocalDateTime inicio,
                   LocalDateTime fim, String local) {
-        this(UUID.randomUUID(), titulo, descricao, organizador, inicio, fim, local, EstadoEvento.RASCUNHO, false);
+        this(titulo, descricao, organizador, inicio, fim, local, CategoriaEvento.OUTROS);
+    }
+
+    public Evento(String titulo, String descricao, Usuario organizador, LocalDateTime inicio,
+                  LocalDateTime fim, String local, CategoriaEvento categoria) {
+        this(UUID.randomUUID(), titulo, descricao, organizador, inicio, fim, local, categoria, EstadoEvento.RASCUNHO, false);
     }
 
     public static Evento reconstituir(UUID id, String titulo, String descricao, Usuario organizador,
                                       LocalDateTime inicio, LocalDateTime fim, String local, EstadoEvento estado) {
-        return new Evento(id, titulo, descricao, organizador, inicio, fim, local, estado, true);
+        return reconstituir(id, titulo, descricao, organizador, inicio, fim, local, CategoriaEvento.OUTROS, estado);
+    }
+
+    public static Evento reconstituir(UUID id, String titulo, String descricao, Usuario organizador,
+                                      LocalDateTime inicio, LocalDateTime fim, String local,
+                                      CategoriaEvento categoria, EstadoEvento estado) {
+        return new Evento(id, titulo, descricao, organizador, inicio, fim, local, categoria, estado, true);
     }
 
     public static Evento reconstituir(UUID id, String titulo, String descricao, Usuario organizador,
                                       LocalDateTime inicio, LocalDateTime fim, String local, EstadoEvento estado,
                                       List<Atividade> atividades) {
-        Evento evento = reconstituir(id, titulo, descricao, organizador, inicio, fim, local, estado);
+        return reconstituir(id, titulo, descricao, organizador, inicio, fim, local,
+                CategoriaEvento.OUTROS, estado, atividades);
+    }
+
+    public static Evento reconstituir(UUID id, String titulo, String descricao, Usuario organizador,
+                                      LocalDateTime inicio, LocalDateTime fim, String local,
+                                      CategoriaEvento categoria, EstadoEvento estado, List<Atividade> atividades) {
+        Evento evento = reconstituir(id, titulo, descricao, organizador, inicio, fim, local, categoria, estado);
         // Reconstituir registros não é adicionar novas atividades a um evento encerrado.
         for (Atividade atividade : List.copyOf(atividades)) {
             evento.validarAtividadeNoPeriodo(atividade);
@@ -44,7 +63,8 @@ public class Evento {
     }
 
     private Evento(UUID id, String titulo, String descricao, Usuario organizador, LocalDateTime inicio,
-                   LocalDateTime fim, String local, EstadoEvento estado, boolean reconstituindo) {
+                   LocalDateTime fim, String local, CategoriaEvento categoria,
+                   EstadoEvento estado, boolean reconstituindo) {
 
         if (id == null) throw new IllegalArgumentException("Identificador do evento é obrigatório.");
         if (titulo == null || titulo.isBlank()) {
@@ -65,6 +85,7 @@ public class Evento {
         if (inicio != null && !fim.isAfter(inicio)) throw new IllegalArgumentException("Fim deve ser posterior ao início.");
         if (local != null && local.isBlank()) throw new IllegalArgumentException("Local não pode ser vazio.");
         if (estado == null) throw new IllegalArgumentException("Estado é obrigatório.");
+        if (categoria == null) throw new IllegalArgumentException("Categoria é obrigatória.");
 
         this.id = id;
         this.titulo = titulo;
@@ -74,7 +95,13 @@ public class Evento {
         this.inicio = inicio;
         this.fim = fim;
         this.local = local;
+        this.categoria = categoria;
         this.estado = estado;
+    }
+
+    public void alterarCategoria(CategoriaEvento novaCategoria) {
+        if (novaCategoria == null) throw new IllegalArgumentException("Categoria é obrigatória.");
+        this.categoria = novaCategoria;
     }
 
     public void publicar() {
@@ -135,4 +162,5 @@ public class Evento {
     public LocalDateTime getInicio() { return inicio; }
     public LocalDateTime getFim() { return fim; }
     public String getLocal() { return local; }
+    public CategoriaEvento getCategoria() { return categoria; }
 }

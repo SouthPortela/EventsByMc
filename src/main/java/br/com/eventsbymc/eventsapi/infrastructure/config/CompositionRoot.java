@@ -36,6 +36,12 @@ public final class CompositionRoot {
     public final ConsultarMinhaConta consultarMinhaConta;
     public final OperacoesEvento eventos;
     public final br.com.eventsbymc.eventsapi.application.port.in.OperacoesPresenca presencas;
+    public final br.com.eventsbymc.eventsapi.application.port.in.OperacoesProgramacao programacao;
+    public final br.com.eventsbymc.eventsapi.application.port.in.ConsultarRelatorios relatorios;
+    public final br.com.eventsbymc.eventsapi.application.port.in.OperacoesAvaliacao avaliacoes;
+    public final br.com.eventsbymc.eventsapi.application.port.in.OperacoesInteracao interacao;
+    public final br.com.eventsbymc.eventsapi.application.port.in.OperacoesCertificado certificados;
+    public final br.com.eventsbymc.eventsapi.application.port.in.OperacoesFrequencia frequencia;
 
     private CompositionRoot() {
         JdbcConnectionFactory jdbcConnectionFactory = JdbcConnectionFactory.fromEnvironment();
@@ -46,6 +52,26 @@ public final class CompositionRoot {
                 new br.com.eventsbymc.eventsapi.adapter.out.jdbc.JdbcPresencaRepository(jdbcConnectionFactory),
                 usuarioRepository, new JdbcEventoRepository(jdbcConnectionFactory),
                 new br.com.eventsbymc.eventsapi.infrastructure.adapter.CodigoPresencaSeguro());
+        this.programacao = new br.com.eventsbymc.eventsapi.application.usecase.ProgramacaoUseCase(
+                new br.com.eventsbymc.eventsapi.adapter.out.jdbc.JdbcProgramacaoRepository(jdbcConnectionFactory),
+                new JdbcEventoRepository(jdbcConnectionFactory), usuarioRepository);
+        this.relatorios = new br.com.eventsbymc.eventsapi.application.usecase.RelatoriosUseCase(
+                new br.com.eventsbymc.eventsapi.adapter.out.jdbc.JdbcRelatoriosRepository(jdbcConnectionFactory),
+                new JdbcEventoRepository(jdbcConnectionFactory), usuarioRepository);
+        this.avaliacoes = new br.com.eventsbymc.eventsapi.application.usecase.AvaliacoesUseCase(
+                new br.com.eventsbymc.eventsapi.adapter.out.jdbc.JdbcAvaliacaoRepository(jdbcConnectionFactory),
+                new JdbcEventoRepository(jdbcConnectionFactory), usuarioRepository);
+        this.interacao = new br.com.eventsbymc.eventsapi.application.usecase.InteracaoUseCase(
+                new br.com.eventsbymc.eventsapi.adapter.out.jdbc.JdbcInteracaoRepository(jdbcConnectionFactory),
+                new JdbcEventoRepository(jdbcConnectionFactory), usuarioRepository);
+        this.certificados = new br.com.eventsbymc.eventsapi.application.usecase.CertificadosUseCase(
+                new br.com.eventsbymc.eventsapi.adapter.out.jdbc.JdbcCertificadoRepository(jdbcConnectionFactory),
+                new br.com.eventsbymc.eventsapi.adapter.out.jdbc.JdbcRelatoriosRepository(jdbcConnectionFactory),
+                new JdbcEventoRepository(jdbcConnectionFactory), usuarioRepository,
+                br.com.eventsbymc.eventsapi.infrastructure.adapter.SmtpEmailCertificado.fromEnvironment());
+        this.frequencia = new br.com.eventsbymc.eventsapi.application.usecase.FrequenciaUseCase(
+                new br.com.eventsbymc.eventsapi.adapter.out.jdbc.JdbcFrequenciaRepository(jdbcConnectionFactory),
+                new JdbcEventoRepository(jdbcConnectionFactory), usuarioRepository);
         this.codePass = new BcryptCodePassAdapter();
         this.registrarUsuarioUseCase = new RegistrarUsuarioUseCase(usuarioRepository, codePass);
         this.tokenProvider = JwtTokenProviderAdapter.fromEnvironment();

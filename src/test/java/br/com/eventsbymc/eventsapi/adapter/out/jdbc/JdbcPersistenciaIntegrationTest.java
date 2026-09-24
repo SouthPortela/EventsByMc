@@ -3,6 +3,7 @@ package br.com.eventsbymc.eventsapi.adapter.out.jdbc;
 import br.com.eventsbymc.eventsapi.application.port.out.EventoRepository;
 import br.com.eventsbymc.eventsapi.application.port.out.UsuarioRepository;
 import br.com.eventsbymc.eventsapi.domain.model.Evento;
+import br.com.eventsbymc.eventsapi.domain.model.CategoriaEvento;
 import br.com.eventsbymc.eventsapi.domain.model.Perfil;
 import br.com.eventsbymc.eventsapi.domain.model.Pessoa;
 import br.com.eventsbymc.eventsapi.domain.model.Usuario;
@@ -61,7 +62,8 @@ class JdbcPersistenciaIntegrationTest {
                 usuarioEncontrado,
                 LocalDateTime.of(2026, 10, 10, 8, 0),
                 LocalDateTime.of(2026, 10, 10, 18, 0),
-                "Laboratório de testes"
+                "Laboratório de testes",
+                CategoriaEvento.TECNOLOGIA
         );
 
         eventoRepository.salvar(evento);
@@ -71,6 +73,9 @@ class JdbcPersistenciaIntegrationTest {
                 .orElseThrow();
 
         assertEquals(evento.getTitulo(), eventoEncontrado.getTitulo());
+        assertEquals(CategoriaEvento.TECNOLOGIA, eventoEncontrado.getCategoria());
+        assertTrue(eventoRepository.alterarCategoria(eventoId, CategoriaEvento.ACADEMICO));
+        assertEquals(CategoriaEvento.ACADEMICO, eventoRepository.buscarPorId(eventoId).orElseThrow().getCategoria());
         assertEquals(usuarioId, eventoEncontrado.getOrganizador().getId());
     }
 

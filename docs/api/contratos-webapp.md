@@ -1,19 +1,25 @@
 # Integração implementada do webapp
 
+> Este é o registro da primeira etapa de integração. Para o estado posterior
+> com programação, agenda, políticas de frequência, avaliações, relatórios,
+> certificados e interação, consulte
+> [requisitos-funcionais-webapp.md](requisitos-funcionais-webapp.md).
+
 Atualização de presença: inscrição básica, criação/listagem de atividades e confirmação
 por QR/código agora possuem implementação. Veja os contratos em
 [presenca.md](presenca.md) e os scripts em [db/README.md](../../db/README.md).
 As limitações descritas ao final deste documento refletem a entrega anterior de
 conta/eventos; o guia de presença atualiza especificamente esses novos fluxos.
 
-Atualizado em 22/09/2026. Este documento descreve o código atual; o roteiro
+Atualizado em 24/09/2026. Este documento descreve a integração inicial; o roteiro
 `integracao-webapp.md` foi preservado como histórico didático.
 
 ## O que está conectado
 
 Vue 3 e Bootstrap continuam responsáveis pelas telas, sem recarregar a página
 durante a navegação. O backend continua em Java 21, com HttpServer do JDK, sem Spring.
-Não foram adicionadas dependências, tabelas, credenciais ou configurações de implantação.
+Não foram adicionadas dependências, tabelas, credenciais ou configurações de implantação;
+a migração V4 acrescenta a coluna `categoria` à tabela de eventos.
 
 | Tela/operação | Requisição feita pelo navegador | Acesso |
 |---|---|---|
@@ -24,7 +30,8 @@ Não foram adicionadas dependências, tabelas, credenciais ou configurações de
 | Catálogo | GET /api/eventos | Público; apenas PUBLICADO |
 | Detalhes | GET /api/eventos/{id} | Público; apenas PUBLICADO |
 | Meus eventos | GET /api/usuarios/me/eventos | Organizador/admin; somente eventos próprios |
-| Salvar rascunho | POST /api/eventos | Organizador/admin |
+| Salvar rascunho | POST /api/eventos | Organizador/admin; categoria opcional para clientes antigos |
+| Alterar categoria | PATCH /api/eventos/{id}/categoria | Dono organizador ou administrador |
 | Publicar | POST /api/eventos/{id}/publicacao | Dono organizador ou administrador |
 | Encerrar | POST /api/eventos/{id}/encerramento | Dono organizador ou administrador |
 
@@ -71,7 +78,8 @@ Os valores abaixo são apenas exemplos:
   "descricao": "Encontro com palestras sobre desenvolvimento de software.",
   "local": "Auditório principal",
   "dataInicio": "2026-10-10T09:00",
-  "dataFim": "2026-10-10T18:00"
+  "dataFim": "2026-10-10T18:00",
+  "categoria": "TECNOLOGIA"
 }
 ```
 
@@ -80,7 +88,11 @@ Os valores abaixo são apenas exemplos:
 - Texto é aparado nas extremidades. Vue exibe os dados por interpolação escapada;
   não usar `v-html` para descrição ou outros conteúdos recebidos.
 - Corpo de criação limitado a 64 KiB; conteúdo inválido retorna `400`.
-- Não enviar organizador, estado, capacidade, preço, categoria ou banner.
+- Categoria: `TECNOLOGIA`, `CURSOS_E_WORKSHOPS`, `NEGOCIOS_E_CARREIRAS`,
+  `ACADEMICO` ou `OUTROS`. Clientes antigos que a omitem recebem `OUTROS`.
+  O formulário atual exige uma categoria válida e os cartões/filtros usam o valor
+  persistido, nunca uma inferência pelo banner ou título.
+- Não enviar organizador, estado, capacidade, preço ou banner.
   O organizador vem do JWT validado e o estado inicial é RASCUNHO.
 - As datas usam `LocalDateTime`/TIMESTAMP, sem fuso no contrato atual.
   O frontend não adiciona um deslocamento fictício. Uma política explícita de
@@ -97,6 +109,7 @@ Resposta da criação, consulta e mudança de estado:
   "dataInicio": "2026-10-10T09:00:00",
   "dataFim": "2026-10-10T18:00:00",
   "estado": "RASCUNHO",
+  "categoria": "TECNOLOGIA",
   "atividades": []
 }
 ```
@@ -104,6 +117,13 @@ Resposta da criação, consulta e mudança de estado:
 Listas retornam arrays desses objetos. Atividades existentes retornam somente
 `id`, `titulo`, `local`, `dataInicio` e `dataFim`; a tela apresenta esse cronograma,
 mas ainda não cria ou edita atividades pela API.
+
+Para classificar um evento já existente, o painel envia
+`PATCH /api/eventos/{id}/categoria` com `{"categoria":"ACADEMICO"}` e Bearer. A resposta
+`200` tem o mesmo formato de evento. Rascunhos e eventos já publicados podem ser
+reclassificados sem alterar o estado. A categoria é validada no servidor, e a
+alteração exige propriedade do evento ou perfil de administrador. Após a V4 do banco,
+eventos antigos ficam em `OUTROS` até serem classificados pelo organizador.
 
 Publicação/encerramento não precisam de corpo e retornam `200`.
 O ciclo é RASCUNHO → PUBLICADO → ENCERRADO. Encerrados saem do catálogo público.

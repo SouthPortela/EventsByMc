@@ -152,6 +152,27 @@ class ApiWebIntegrationTest {
         dono.removerPerfil(Perfil.ORGANIZADOR);
         assertEquals(403, pedir("POST", "/eventos", token, DADOS).statusCode());
     }
+    @Test void categoriaDoEventoVaiDoCadastroAoCatalogoEExigePropriedadeParaEdicao() throws Exception {
+        String dados = DADOS.replace("\"local\":", "\"categoria\":\"ACADEMICO\",\"local\":");
+        var criacao = pedir("POST", "/eventos", token, dados);
+        assertEquals(201, criacao.statusCode(), criacao.body());
+        String id = mapper.readTree(criacao.body()).get("id").asText();
+        assertEquals("ACADEMICO", mapper.readTree(criacao.body()).get("categoria").asText());
+        assertEquals(401, pedir("PATCH", "/eventos/" + id + "/categoria", null,
+                "{\"categoria\":\"TECNOLOGIA\"}").statusCode());
+        var outro = RepositoriosEmMemoria.usuario(usuarios, Perfil.ORGANIZADOR);
+        assertEquals(403, pedir("PATCH", "/eventos/" + id + "/categoria", token(outro),
+                "{\"categoria\":\"TECNOLOGIA\"}").statusCode());
+        assertEquals(400, pedir("PATCH", "/eventos/" + id + "/categoria", token,
+                "{\"categoria\":\"INVALIDA\"}").statusCode());
+        var alteracao = pedir("PATCH", "/eventos/" + id + "/categoria", token,
+                "{\"categoria\":\"TECNOLOGIA\"}");
+        assertEquals(200, alteracao.statusCode(), alteracao.body());
+        assertEquals("TECNOLOGIA", mapper.readTree(alteracao.body()).get("categoria").asText());
+        assertEquals(200, pedir("POST", "/eventos/" + id + "/publicacao", token, null).statusCode());
+        assertEquals("TECNOLOGIA", mapper.readTree(pedir("GET", "/eventos", null, null).body())
+                .get(0).get("categoria").asText());
+    }
     @Test void validaJsonUuidMetodosETamanhoDoCorpo() throws Exception {
         assertEquals(400, pedir("GET", "/eventos/123", null, null).statusCode());
         assertEquals(400, pedir("POST", "/eventos", token, "{").statusCode());

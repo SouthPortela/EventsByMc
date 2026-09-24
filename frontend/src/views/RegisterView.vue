@@ -73,7 +73,7 @@ async function cadastrar(): Promise<void> {
                     value="PARTICIPANTE"
                   />
                   <label class="form-check-label" for="perfil-participante"
-                    >Participante — inscrever-se e confirmar presença</label
+                    >Participante — participar de eventos</label
                   >
                 </div>
                 <div class="form-check">
@@ -86,7 +86,7 @@ async function cadastrar(): Promise<void> {
                     value="ORGANIZADOR"
                   />
                   <label class="form-check-label" for="perfil-organizador"
-                    >Organizador — criar eventos e gerir chamadas</label
+                    >Organizador — criar eventos</label
                   >
                 </div>
               </fieldset>

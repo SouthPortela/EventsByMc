@@ -36,7 +36,8 @@ public class AutenticacaoFiltro extends Filter {
     public void doFilter(HttpExchange exchange, Chain chain) throws IOException {
         String caminho = exchange.getRequestURI().getPath();
         if (ROTAS_PUBLICAS.contains(exchange.getRequestMethod() + " " + caminho)
-                || ("GET".equals(exchange.getRequestMethod()) && Router.corresponde("/eventos/{id}", caminho))) {
+                || ("GET".equals(exchange.getRequestMethod()) && (Router.corresponde("/eventos/{id}", caminho)
+                        || Router.corresponde("/eventos/{id}/programacao", caminho)))) {
             chain.doFilter(exchange);
             return;
             //se a rota for pública, o filtro não faz nada e deixa a requisição passar para o próximo filtro ou para o recurso solicitado.

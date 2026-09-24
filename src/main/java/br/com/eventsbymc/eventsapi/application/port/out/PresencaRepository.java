@@ -10,6 +10,7 @@ import java.util.UUID;
 public interface PresencaRepository {
     DadosPresenca.Participacao consultarParticipacao(UUID usuarioId);
     DadosPresenca.Inscricao inscrever(UUID usuarioId, UUID eventoId);
+    DadosPresenca.Inscricao cancelarInscricao(UUID usuarioId, UUID eventoId);
     List<DadosPresenca.Atividade> listarAtividades(UUID eventoId);
     void adicionarAtividade(UUID eventoId, Atividade atividade);
     UUID eventoDaAtividade(UUID atividadeId);

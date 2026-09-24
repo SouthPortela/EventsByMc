@@ -93,4 +93,20 @@ class EventosUseCaseTest {
         assertThrows(AcessoNegadoException.class,
                 () -> caso.alterarEstado(dono.getId(), criado.id(), EstadoEvento.ENCERRADO));
     }
+    @Test void categoriaPersisteEOrganizadorPodeClassificarEventoExistente() {
+        var dadosComCategoria = new DadosNovoEvento("Simpósio", dados().descricao(), "Auditório",
+                inicio, inicio.plusHours(2), CategoriaEvento.ACADEMICO);
+        var criado = caso.criar(dono.getId(), dadosComCategoria);
+        assertEquals(CategoriaEvento.ACADEMICO, criado.categoria());
+        assertEquals(CategoriaEvento.ACADEMICO, caso.listarDoOrganizador(dono.getId()).getFirst().categoria());
+        var alterado = caso.alterarCategoria(dono.getId(), criado.id(), CategoriaEvento.TECNOLOGIA);
+        assertEquals(CategoriaEvento.TECNOLOGIA, alterado.categoria());
+        assertEquals(CategoriaEvento.TECNOLOGIA, caso.listarDoOrganizador(dono.getId()).getFirst().categoria());
+        var outro = RepositoriosEmMemoria.usuario(usuarios, Perfil.ORGANIZADOR);
+        assertThrows(AcessoNegadoException.class,
+                () -> caso.alterarCategoria(outro.getId(), criado.id(), CategoriaEvento.OUTROS));
+        assertThrows(IllegalArgumentException.class,
+                () -> caso.alterarCategoria(dono.getId(), criado.id(), null));
+        assertEquals(CategoriaEvento.OUTROS, caso.criar(dono.getId(), dados()).categoria());
+    }
 }

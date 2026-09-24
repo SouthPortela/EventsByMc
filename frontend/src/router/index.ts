@@ -63,6 +63,12 @@ const router = createRouter({
           meta: { title: 'Minha agenda' },
         },
         {
+          path: 'avaliacoes/:eventoId',
+          name: 'participant-evaluations',
+          component: () => import('../views/ParticipantEvaluationsView.vue'),
+          meta: { title: 'Avaliações do evento' },
+        },
+        {
           path: 'conta',
           redirect: { name: 'account' },
         },
@@ -86,10 +92,28 @@ const router = createRouter({
           meta: { title: 'Criar evento' },
         },
         {
+          path: 'eventos/:id/programacao',
+          name: 'program-management',
+          component: () => import('../views/ProgramacaoManagementView.vue'),
+          meta: { title: 'Programação e regras' },
+        },
+        {
+          path: 'eventos/:id/questionario',
+          name: 'questionnaire-management',
+          component: () => import('../views/QuestionarioManagementView.vue'),
+          meta: { title: 'Questionário do evento' },
+        },
+        {
+          path: 'atividades/:atividadeId/questionario',
+          name: 'activity-questionnaire-management',
+          component: () => import('../views/QuestionarioManagementView.vue'),
+          meta: { title: 'Questionário da atividade' },
+        },
+        {
           path: 'inscricoes',
           name: 'organizer-registrations',
           component: () => import('../views/OrganizerRegistrationsView.vue'),
-          meta: { title: 'Gestão de inscrições', apiPendente: true },
+          meta: { title: 'Gestão de inscrições' },
         },
         {
           path: 'frequencia',
@@ -101,7 +125,7 @@ const router = createRouter({
           path: 'relatorios',
           name: 'reports',
           component: () => import('../views/ReportsView.vue'),
-          meta: { title: 'Relatórios', apiPendente: true },
+          meta: { title: 'Relatórios' },
         },
       ],
     },

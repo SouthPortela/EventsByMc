@@ -2,6 +2,7 @@
 import { reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { criarEvento } from '@/features/events/services/eventoService'
+import { categoriasEvento, ehCategoriaEvento } from '@/features/events/types/categoria'
 import {
   validarEvento,
   type DadosFormularioEvento,
@@ -16,6 +17,7 @@ const dados = reactive<DadosFormularioEvento>({
   dataInicio: '',
   dataFim: '',
   local: '',
+  categoria: '',
 })
 const erros = ref<ErrosEvento>({})
 const mensagem = ref('')
@@ -26,6 +28,7 @@ async function salvarRascunho(): Promise<void> {
   mensagem.value = ''
   erros.value = validarEvento(dados)
   if (Object.keys(erros.value).length) return
+  if (!ehCategoriaEvento(dados.categoria)) return
   salvando.value = true
   try {
     const evento = await criarEvento({
@@ -33,6 +36,7 @@ async function salvarRascunho(): Promise<void> {
       titulo: dados.titulo.trim(),
       descricao: dados.descricao.trim(),
       local: dados.local.trim(),
+      categoria: dados.categoria,
     })
     await router.push({ name: 'organizer-dashboard', query: { criado: evento.id } })
   } catch (e) {
@@ -109,6 +113,16 @@ async function salvarRascunho(): Promise<void> {
                   />
                   <div class="invalid-feedback">{{ erros.dataFim }}</div>
                 </div>
+              </div>
+              <div class="mb-4">
+                <label for="categoria" class="form-label">Categoria</label>
+                <select id="categoria" v-model="dados.categoria" class="form-select" :class="{ 'is-invalid': erros.categoria }" required>
+                  <option value="" disabled>Selecione uma categoria</option>
+                  <option v-for="categoria in categoriasEvento" :key="categoria.codigo" :value="categoria.codigo">
+                    {{ categoria.nome }}
+                  </option>
+                </select>
+                <div class="invalid-feedback">{{ erros.categoria }}</div>
               </div>
               <div class="mb-4">
                 <label for="local" class="form-label">Local</label>

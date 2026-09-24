@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { listarMeusEventos, alterarEstadoEvento } from '@/features/events/services/eventoService'
+import { listarMeusEventos, alterarEstadoEvento, alterarCategoriaEvento } from '@/features/events/services/eventoService'
 import type { EventoResumo } from '@/features/events/types/evento'
+import { categoriasEvento, ehCategoriaEvento } from '@/features/events/types/categoria'
 import { formatarData } from '@/features/events/utils/formatarData'
 import { ApiError } from '@/shared/services/httpClient'
 
@@ -47,6 +48,25 @@ async function alterar(evento: EventoResumo, acao: 'publicacao' | 'encerramento'
       e instanceof ApiError
         ? e.message
         : 'Não foi possível confirmar a alteração. Atualize a lista antes de tentar novamente.'
+  } finally {
+    alterando.value = null
+  }
+}
+
+async function selecionarCategoria(evento: EventoResumo, entrada: Event): Promise<void> {
+  const seletor = entrada.target as HTMLSelectElement
+  const categoria = seletor.value
+  if (alterando.value || !ehCategoriaEvento(categoria) || categoria === evento.categoria) return
+  alterando.value = evento.id
+  erro.value = ''
+  mensagem.value = ''
+  try {
+    const atualizado = await alterarCategoriaEvento(evento.id, categoria)
+    eventos.value = eventos.value.map((item) => (item.id === atualizado.id ? atualizado : item))
+    mensagem.value = 'Categoria atualizada. O filtro do catálogo já usará essa classificação.'
+  } catch (e) {
+    seletor.value = evento.categoria
+    erro.value = e instanceof ApiError ? e.message : 'Não foi possível atualizar a categoria.'
   } finally {
     alterando.value = null
   }
@@ -103,6 +123,7 @@ onMounted(carregar)
               <tr>
                 <th class="p-3">Evento</th>
                 <th>Início</th>
+                <th>Categoria</th>
                 <th>Estado</th>
                 <th>Ações</th>
               </tr>
@@ -114,8 +135,23 @@ onMounted(carregar)
                   <div class="small text-muted">{{ evento.local }}</div>
                 </td>
                 <td>{{ formatarData(evento.dataInicio) }}</td>
+                <td>
+                  <select
+                    class="form-select form-select-sm"
+                    :value="evento.categoria"
+                    :disabled="!!alterando"
+                    :aria-label="`Categoria de ${evento.titulo}`"
+                    @change="selecionarCategoria(evento, $event)"
+                  >
+                    <option v-for="categoria in categoriasEvento" :key="categoria.codigo" :value="categoria.codigo">
+                      {{ categoria.nome }}
+                    </option>
+                  </select>
+                </td>
                 <td>{{ evento.estado }}</td>
                 <td>
+                  <RouterLink class="btn btn-sm btn-outline-secondary me-2" :to="`/organizador/eventos/${evento.id}/programacao`">Programação e regras</RouterLink>
+                  <RouterLink class="btn btn-sm btn-outline-secondary me-2" :to="`/organizador/eventos/${evento.id}/questionario`">Questionário</RouterLink>
                   <RouterLink
                     v-if="evento.estado === 'PUBLICADO'"
                     class="btn btn-sm btn-outline-primary me-2"
@@ -141,7 +177,7 @@ onMounted(carregar)
                 </td>
               </tr>
               <tr v-if="!eventos.length && !erro">
-                <td colspan="4" class="p-4 text-muted text-center">
+                <td colspan="5" class="p-4 text-muted text-center">
                   Você ainda não criou eventos.
                 </td>
               </tr>

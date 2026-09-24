@@ -1,3 +1,5 @@
+import type { CategoriaEvento } from './categoria'
+
 export interface EventoResumo {
   id: string
   titulo: string
@@ -6,7 +8,7 @@ export interface EventoResumo {
   dataInicio: string | null
   dataFim?: string | null
   estado?: 'RASCUNHO' | 'PUBLICADO' | 'ENCERRADO'
-  categoria?: string
+  categoria: CategoriaEvento
   modalidade?: 'PRESENCIAL' | 'ONLINE' | 'HIBRIDO'
   banner?: MidiaReferencia
   preco?: string

@@ -7,6 +7,7 @@ const base = {
   dataInicio: '2026-09-10T19:00',
   dataFim: '2026-09-10T21:00',
   local: 'Auditório',
+  categoria: 'TECNOLOGIA' as const,
 }
 describe('validarEvento', () => {
   it('aceita os campos suportados pela API', () => expect(validarEvento(base)).toEqual({}))
@@ -24,5 +25,9 @@ describe('validarEvento', () => {
       titulo: expect.any(String),
       descricao: expect.any(String),
     })
+  })
+  it('rejeita uma categoria fora do catálogo', () => {
+    expect(validarEvento({ ...base, categoria: 'INVALIDA' as typeof base.categoria }).categoria).toBeTruthy()
+    expect(validarEvento({ ...base, categoria: '' }).categoria).toBeTruthy()
   })
 })

@@ -10,7 +10,8 @@ import com.sun.net.httpserver.*;
 import java.io.IOException;
 
 public final class PresencaHandler implements HttpHandler {
-    public enum Acao { CONSULTAR_PARTICIPACAO, INSCREVER, LISTAR_ATIVIDADES, CRIAR_ATIVIDADE, GERAR, CONFIRMAR }
+    public enum Acao { CONSULTAR_PARTICIPACAO, INSCREVER, CANCELAR_INSCRICAO,
+        LISTAR_ATIVIDADES, CRIAR_ATIVIDADE, GERAR, CONFIRMAR }
     public record EntradaConfirmacao(String codigo, OrigemPresenca origem) {}
     private final OperacoesPresenca caso;
     private final ObjectMapper mapper;
@@ -25,6 +26,7 @@ public final class PresencaHandler implements HttpHandler {
         Object resultado = switch (acao) {
             case CONSULTAR_PARTICIPACAO -> caso.consultarParticipacao(usuarioId);
             case INSCREVER -> caso.inscrever(usuarioId, Router.uuidEvento(exchange));
+            case CANCELAR_INSCRICAO -> caso.cancelarInscricao(usuarioId, Router.uuidEvento(exchange));
             case LISTAR_ATIVIDADES -> caso.listarAtividades(usuarioId, Router.uuidEvento(exchange));
             case CRIAR_ATIVIDADE -> caso.criarAtividade(usuarioId, Router.uuidEvento(exchange),
                     HttpRespostas.lerJson(exchange, DadosPresenca.NovaAtividade.class, mapper));

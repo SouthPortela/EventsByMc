@@ -1,5 +1,8 @@
 import type { DadosCriacaoEvento } from '../services/eventoService'
-export type DadosFormularioEvento = DadosCriacaoEvento
+import { ehCategoriaEvento, type CategoriaEvento } from '../types/categoria'
+export type DadosFormularioEvento = Omit<DadosCriacaoEvento, 'categoria'> & {
+  categoria: CategoriaEvento | ''
+}
 export type ErrosEvento = Partial<Record<keyof DadosFormularioEvento, string>>
 
 export function validarEvento(dados: DadosFormularioEvento): ErrosEvento {
@@ -17,5 +20,6 @@ export function validarEvento(dados: DadosFormularioEvento): ErrosEvento {
     erros.dataFim = 'O término deve ser posterior ao início.'
   if (!dados.local.trim() || dados.local.trim().length > 200)
     erros.local = 'Informe um local com até 200 caracteres.'
+  if (!ehCategoriaEvento(dados.categoria)) erros.categoria = 'Selecione uma categoria válida.'
   return erros
 }

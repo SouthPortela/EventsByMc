@@ -3,6 +3,10 @@ import { ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import AppIcon from '@/components/icons/AppIcon.vue'
 import { buscarEventoPorId } from '@/features/events/services/eventoService'
+import { nomeCategoria } from '@/features/events/types/categoria'
+import ProgramacaoEvento from '@/features/events/components/ProgramacaoEvento.vue'
+import InteracaoEvento from '@/features/events/components/InteracaoEvento.vue'
+import AvaliacaoEvento from '@/features/evaluations/components/AvaliacaoEvento.vue'
 import type { EventoDetalhe } from '@/features/events/types/evento'
 import { formatarData } from '@/features/events/utils/formatarData'
 import { ApiError } from '@/shared/services/httpClient'
@@ -105,7 +109,7 @@ watch(() => route.params.id, carregarEvento, { immediate: true })
               <span
                 v-if="evento.categoria"
                 class="badge rounded-pill text-bg-primary-subtle text-primary-custom mb-3"
-                >{{ evento.categoria }}</span
+                >{{ nomeCategoria(evento.categoria) }}</span
               >
               <h1 class="display-6 fw-bold mb-3">{{ evento.titulo }}</h1>
               <p class="lead text-secondary">{{ evento.descricao }}</p>
@@ -136,62 +140,9 @@ watch(() => route.params.id, carregarEvento, { immediate: true })
 
       <div class="row g-5">
         <div class="col-lg-8">
-          <section class="mb-5">
-            <p class="text-primary-custom fw-semibold small text-uppercase mb-1">Cronograma</p>
-            <h2 class="h3 fw-bold mb-4">Programação do evento</h2>
-            <p v-if="!evento.atividades.length" class="text-muted">
-              Programação ainda não cadastrada.
-            </p>
-            <div class="vstack gap-3">
-              <article
-                v-for="atividade in evento.atividades"
-                :key="atividade.id"
-                class="card border-0 shadow-sm"
-              >
-                <div class="card-body p-4">
-                  <div class="row align-items-center g-3">
-                    <!-- Horário ajustado para col-sm-auto -->
-                    <div class="col-sm-auto">
-                <span class="badge text-bg-primary-subtle text-primary-custom px-3 py-2">
-                  {{ atividade.horario }}
-                </span>
-                    </div>
-                    <!-- Título ajustado para col-sm (preenche o meio) e text-sm-center -->
-                    <div class="col-sm text-sm-center">
-                      <h3 class="h6 fw-bold mb-0">{{ atividade.titulo }}</h3>
-                    </div>
-                    <!-- Local ajustado para col-sm-auto -->
-                    <div class="col-sm-auto text-sm-end text-muted small">
-                      {{ atividade.local }}
-                    </div>
-                  </div>
-                </div>
-              </article>
-            </div>
-          </section>
-
-          <section>
-            <p class="text-primary-custom fw-semibold small text-uppercase mb-1">Convidados</p>
-            <h2 class="h3 fw-bold mb-4">Pessoas em destaque</h2>
-            <div v-if="evento.pessoas?.length" class="row g-3">
-              <div v-for="pessoa in evento.pessoas" :key="pessoa.id" class="col-md-6">
-                <article class="card border-0 shadow-sm h-100">
-                  <div class="card-body d-flex align-items-center gap-3 p-4">
-                    <div
-                      class="bg-primary-subtle text-primary-custom rounded-circle d-flex align-items-center justify-content-center p-3"
-                    >
-                      <span class="fw-bold">{{ pessoa.nome.charAt(0) }}</span>
-                    </div>
-                    <div>
-                      <h3 class="h6 fw-bold mb-1">{{ pessoa.nome }}</h3>
-                      <p class="small text-muted mb-0">{{ pessoa.papel }}</p>
-                    </div>
-                  </div>
-                </article>
-              </div>
-            </div>
-            <p v-else class="text-muted">As pessoas vinculadas serão divulgadas em breve.</p>
-          </section>
+          <ProgramacaoEvento :key="evento.id" :evento-id="evento.id" />
+          <InteracaoEvento :key="`interacao-${evento.id}-${inscricaoConfirmada}`" :evento-id="evento.id" />
+          <AvaliacaoEvento :key="`avaliacao-${evento.id}`" :evento-id="evento.id" />
         </div>
 
         <aside class="col-lg-4">

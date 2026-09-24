@@ -50,8 +50,24 @@ public final class EventosUseCase implements OperacoesEvento {
         if (dados.dataInicio() == null || dados.dataFim() == null) {
             throw new IllegalArgumentException("Informe início e fim do evento.");
         }
-        var evento = new Evento(titulo, descricao, organizador, dados.dataInicio(), dados.dataFim(), local);
+        var categoria = dados.categoria() == null ? CategoriaEvento.OUTROS : dados.categoria();
+        var evento = new Evento(titulo, descricao, organizador, dados.dataInicio(), dados.dataFim(), local, categoria);
         return DadosEvento.de(eventos.salvar(evento));
+    }
+
+    @Override
+    public DadosEvento alterarCategoria(UUID usuarioId, UUID eventoId, CategoriaEvento categoria) {
+        var usuario = organizadorAutorizado(usuarioId);
+        if (categoria == null) throw new IllegalArgumentException("Categoria é obrigatória.");
+        var evento = eventos.buscarPorId(eventoId).orElseThrow(RecursoNaoEncontradoException::new);
+        if (!evento.getOrganizador().getId().equals(usuarioId) && !usuario.possuiPerfil(Perfil.ADMINISTRADOR)) {
+            throw new AcessoNegadoException();
+        }
+        if (!eventos.alterarCategoria(eventoId, categoria)) {
+            throw new RecursoNaoEncontradoException();
+        }
+        evento.alterarCategoria(categoria);
+        return DadosEvento.de(evento);
     }
 
     @Override

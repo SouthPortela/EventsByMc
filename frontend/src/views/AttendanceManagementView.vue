@@ -6,15 +6,21 @@ import type { EventoResumo } from '@/features/events/types/evento'
 import {
   criarAtividade,
   gerarChamada,
-  listarAtividades,
-  type AtividadePresenca,
   type ChamadaGerada,
 } from '@/features/attendance/services/presencaService'
+import { listarProgramacaoGestao, type AtividadeProgramacao } from '@/features/events/services/programacaoService'
+import { listarInscritos, type Inscrito } from '@/features/reports/services/relatoriosService'
+import { listarRegistros, registrarFrequencia, type RegistroFrequencia } from '@/features/attendance/services/frequenciaService'
 import { linkPresenca } from '@/features/attendance/utils/codigoPresenca'
 import { ApiError } from '@/shared/services/httpClient'
 const eventos = ref<EventoResumo[]>([])
 const eventoId = ref('')
-const atividades = ref<AtividadePresenca[]>([])
+const atividades = ref<AtividadeProgramacao[]>([])
+const inscritos = ref<Inscrito[]>([])
+const registros = ref<RegistroFrequencia[]>([])
+const participanteId = ref('')
+const marcacao = ref<RegistroFrequencia['marcacao']>('CONFIRMACAO')
+const atividadeSelecionada = computed(() => atividades.value.find(a => a.id === atividadeId.value) ?? null)
 const atividadeId = ref('')
 const chamada = ref<ChamadaGerada | null>(null)
 const imagem = ref('')
@@ -64,6 +70,7 @@ onMounted(carregar)
 watch(eventoId, async (id) => {
   const atual = ++consulta
   atividades.value = []
+  inscritos.value = []
   atividadeId.value = ''
   chamada.value = null
   imagem.value = ''
@@ -73,17 +80,26 @@ watch(eventoId, async (id) => {
   if (!id) return
   carregandoAtividades.value = true
   try {
-    const lista = await listarAtividades(id)
-    if (atual === consulta) atividades.value = lista
+    const [lista, participantes] = await Promise.all([listarProgramacaoGestao(id), listarInscritos(id)])
+    if (atual === consulta) {
+      atividades.value = lista
+      inscritos.value = participantes.filter(p => p.estado === 'ATIVA')
+    }
   } catch (e) {
     if (atual === consulta) erro.value = falha(e)
   } finally {
     if (atual === consulta) carregandoAtividades.value = false
   }
 })
-watch(atividadeId, () => {
+watch(atividadeId, async (id) => {
   chamada.value = null
   imagem.value = ''
+  registros.value = []
+  marcacao.value = atividadeSelecionada.value?.politicaFrequencia === 'VALIDACAO_MANUAL' ? 'CONFIRMACAO' : 'ENTRADA'
+  if (id && atividadeSelecionada.value?.politicaFrequencia !== 'CHECKIN_UNICO') {
+    try { registros.value = await listarRegistros(id) }
+    catch (e) { erro.value = falha(e) }
+  }
 })
 async function adicionar(): Promise<void> {
   if (ocupado.value || carregandoAtividades.value || !eventoId.value) return
@@ -102,7 +118,7 @@ async function adicionar(): Promise<void> {
   ocupado.value = true
   try {
     const atividade = await criarAtividade(eventoId.value, { ...novo })
-    atividades.value.push(atividade)
+    atividades.value = await listarProgramacaoGestao(eventoId.value)
     atividadeId.value = atividade.id
     Object.assign(novo, { titulo: '', descricao: '', dataInicio: '', dataFim: '', local: '' })
     mensagem.value = 'Atividade cadastrada.'
@@ -111,6 +127,18 @@ async function adicionar(): Promise<void> {
   } finally {
     ocupado.value = false
   }
+}
+async function registrarManual(): Promise<void> {
+  if (!atividadeId.value || !participanteId.value || ocupado.value) return
+  ocupado.value = true
+  erro.value = ''
+  mensagem.value = ''
+  try {
+    const registro = await registrarFrequencia(atividadeId.value, participanteId.value, marcacao.value)
+    registros.value = [...registros.value, registro]
+    mensagem.value = 'Marcação registrada.'
+  } catch (e) { erro.value = falha(e) }
+  finally { ocupado.value = false }
 }
 async function gerar(): Promise<void> {
   if (ocupado.value || !atividadeId.value) return
@@ -182,18 +210,17 @@ async function gerar(): Promise<void> {
               <option value="">
                 {{ carregandoAtividades ? 'Carregando...' : 'Selecione uma atividade' }}
               </option>
-              <option v-for="a in atividades" :key="a.id" :value="a.id">{{ a.titulo }}</option>
+              <option v-for="a in atividades" :key="a.id" :value="a.id">{{ a.titulo }} · {{ a.politicaFrequencia.replaceAll('_', ' ') }}</option>
             </select>
             <button
               class="btn btn-primary-custom w-100"
-              :disabled="ocupado || !atividadeId"
+              :disabled="ocupado || !atividadeId || atividadeSelecionada?.politicaFrequencia !== 'CHECKIN_UNICO'"
               @click="gerar"
             >
               {{ ocupado ? 'Aguarde...' : 'Gerar nova chamada' }}
             </button>
             <p class="small text-muted mt-3 mb-0">
-              O evento precisa estar publicado. Uma nova chamada invalida a anterior. O código vale
-              por 5 minutos.
+              QR e código se aplicam à política de check-in único. Uma nova chamada invalida a anterior e vale por 5 minutos.
             </p>
           </div>
         </section>
@@ -247,7 +274,31 @@ async function gerar(): Promise<void> {
         </details>
       </div>
       <div class="col-lg-7">
-        <section class="card border-0 shadow-sm">
+        <section v-if="atividadeSelecionada && atividadeSelecionada.politicaFrequencia !== 'CHECKIN_UNICO'" class="card border-0 shadow-sm">
+          <div class="card-body p-4">
+            <h2 class="h4">Marcação de frequência</h2>
+            <p class="text-muted small">Política: {{ atividadeSelecionada.politicaFrequencia.replaceAll('_', ' ') }}. Todas as marcações registram o responsável autenticado.</p>
+            <form @submit.prevent="registrarManual">
+              <label for="participante-manual" class="form-label">Participante inscrito</label>
+              <select id="participante-manual" v-model="participanteId" class="form-select mb-3" required>
+                <option value="">Selecione</option>
+                <option v-for="pessoa in inscritos" :key="pessoa.usuarioId" :value="pessoa.usuarioId">{{ pessoa.nome }} · {{ pessoa.email }}</option>
+              </select>
+              <label for="marcacao-manual" class="form-label">Marcação</label>
+              <select id="marcacao-manual" v-model="marcacao" class="form-select mb-3">
+                <option v-if="atividadeSelecionada.politicaFrequencia === 'VALIDACAO_MANUAL'" value="CONFIRMACAO">Confirmar presença</option>
+                <template v-else><option value="ENTRADA">Entrada</option><option value="SAIDA">Saída</option></template>
+              </select>
+              <button class="btn btn-primary-custom" :disabled="ocupado || !participanteId">Registrar</button>
+            </form>
+            <h3 class="h6 mt-4">Marcações recentes</h3>
+            <p v-if="!registros.length" class="text-muted small">Nenhuma marcação nesta atividade.</p>
+            <ul v-else class="list-group"><li v-for="registro in registros" :key="registro.id" class="list-group-item">
+              {{ inscritos.find(p => p.usuarioId === registro.usuarioId)?.nome ?? registro.usuarioId }} · {{ registro.marcacao }} · {{ new Date(registro.registradaEm).toLocaleString('pt-BR') }}
+            </li></ul>
+          </div>
+        </section>
+        <section v-else class="card border-0 shadow-sm">
           <div class="card-body text-center p-4 p-lg-5">
             <template v-if="chamada">
               <h2 class="h4">{{ chamada.atividade }}</h2>

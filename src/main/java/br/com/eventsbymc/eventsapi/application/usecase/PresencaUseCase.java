@@ -37,6 +37,10 @@ public final class PresencaUseCase implements OperacoesPresenca {
         usuario(usuarioId);
         return presencas.inscrever(usuarioId, eventoId);
     }
+    public DadosPresenca.Inscricao cancelarInscricao(UUID usuarioId, UUID eventoId) {
+        usuario(usuarioId);
+        return presencas.cancelarInscricao(usuarioId, eventoId);
+    }
     public List<DadosPresenca.Atividade> listarAtividades(UUID usuarioId, UUID eventoId) {
         gerenciar(usuarioId, eventoId);
         return presencas.listarAtividades(eventoId);
