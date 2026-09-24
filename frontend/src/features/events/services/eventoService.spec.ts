@@ -5,6 +5,7 @@ import {
   listarMeusEventos,
   criarEvento,
   alterarEstadoEvento,
+  alterarCategoriaEvento,
 } from './eventoService'
 import { ApiError, configurarHttpClient } from '@/shared/services/httpClient'
 
@@ -17,6 +18,7 @@ const resposta = {
   dataInicio: '2026-10-10T09:00:00',
   dataFim: '2026-10-10T18:00:00',
   estado: 'PUBLICADO',
+  categoria: 'ACADEMICO',
   atividades: [],
 }
 afterEach(() => vi.unstubAllGlobals())
@@ -27,13 +29,13 @@ function servidor(dados: unknown, status = 200) {
   return fetchMock
 }
 describe('eventoService REST', () => {
-  it('lista dados reais sem inventar vagas e categorias', async () => {
+  it('lista a categoria persistida sem inventar vagas', async () => {
     const fetchMock = servidor([resposta])
     const eventos = await listarEventos()
     expect(fetchMock).toHaveBeenCalledWith('/api/eventos', expect.any(Object))
     expect(eventos[0]).toMatchObject({ id, titulo: 'Simpósio' })
     expect(eventos[0]).not.toHaveProperty('vagas')
-    expect(eventos[0]).not.toHaveProperty('categoria')
+    expect(eventos[0]?.categoria).toBe('ACADEMICO')
   })
   it('consulta os detalhes usando UUID', async () => {
     const fetchMock = servidor(resposta)
@@ -58,10 +60,18 @@ describe('eventoService REST', () => {
       local: resposta.local,
       dataInicio: resposta.dataInicio,
       dataFim: resposta.dataFim,
+      categoria: 'ACADEMICO' as const,
     }
     expect((await criarEvento(dados)).estado).toBe('RASCUNHO')
     expect(fetchMock.mock.calls[0]?.[1].method).toBe('POST')
     expect(JSON.parse(fetchMock.mock.calls[0]?.[1].body)).toEqual(dados)
+  })
+  it('altera a categoria pelo endpoint protegido', async () => {
+    const fetchMock = servidor({ ...resposta, categoria: 'TECNOLOGIA' })
+    expect((await alterarCategoriaEvento(id, 'TECNOLOGIA')).categoria).toBe('TECNOLOGIA')
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/eventos/' + id + '/categoria')
+    expect(fetchMock.mock.calls[0]?.[1].method).toBe('PATCH')
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1].body)).toEqual({ categoria: 'TECNOLOGIA' })
   })
   it('publica e encerra pela rota protegida', async () => {
     const fetchMock = servidor(resposta)

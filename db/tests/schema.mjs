@@ -23,7 +23,7 @@ test('inicialização completa, constraints e consultas do adaptador de presenç
   const db = new PGlite()
   try {
     await db.exec(await lerEntrada(new URL('db/inicializar.sql', raiz)))
-    assert.equal((await db.query('SELECT count(*)::int AS total FROM versoes_schema')).rows[0].total, 3)
+    assert.equal((await db.query('SELECT count(*)::int AS total FROM versoes_schema')).rows[0].total, 9)
     const usuario = randomUUID(), outro = randomUUID(), evento = randomUUID(), evento2 = randomUUID()
     const atividade = randomUUID(), atividade2 = randomUUID(), inscricao = randomUUID(), chamada = randomUUID()
     await db.query("INSERT INTO usuarios(id,nome,email,senha_hash) VALUES ($1,'Teste','teste@example.test','hash-teste'),($2,'Outro','outro@example.test','hash-teste')", [usuario, outro])
@@ -106,5 +106,159 @@ test('V3 transforma visitantes persistidos em participantes e preserva organizad
       [{ usuario_id: admin, perfil: 'ADMINISTRADOR' }, { usuario_id: organizador, perfil: 'ORGANIZADOR' }, { usuario_id: participante, perfil: 'PARTICIPANTE' }])
     await assert.rejects(db.query("INSERT INTO usuario_perfis(usuario_id,perfil) VALUES ($1,'VISITANTE')", [participante]), { code: '23514' })
     assert.equal((await db.query('SELECT max(versao) AS versao FROM versoes_schema')).rows[0].versao, 3)
+  } finally { await db.close() }
+})
+
+test('V4 preserva eventos anteriores, permite classificação e rejeita categoria desconhecida', async () => {
+  const db = new PGlite()
+  try {
+    await db.exec(await readFile(new URL('src/main/resources/db/migration/V1__cria_modelo_inicial.sql', raiz), 'utf8'))
+    await db.exec(await lerEntrada(new URL('db/atualizar-v2.sql', raiz)))
+    await db.exec(await lerEntrada(new URL('db/atualizar-v3.sql', raiz)))
+    const usuario = randomUUID(), evento = randomUUID()
+    await db.query("INSERT INTO usuarios(id,nome,email) VALUES ($1,'Organizador','organizador@example.test')", [usuario])
+    await db.query("INSERT INTO eventos(id,titulo,organizador_id) VALUES ($1,'Simpósio',$2)", [evento, usuario])
+    await db.exec(await lerEntrada(new URL('db/atualizar-v4.sql', raiz)))
+    assert.equal((await db.query('SELECT categoria FROM eventos WHERE id=$1', [evento])).rows[0].categoria, 'OUTROS')
+    await db.query('UPDATE eventos SET categoria=$1 WHERE id=$2', ['ACADEMICO', evento])
+    assert.equal((await db.query('SELECT categoria FROM eventos WHERE id=$1', [evento])).rows[0].categoria, 'ACADEMICO')
+    await assert.rejects(db.query('UPDATE eventos SET categoria=$1 WHERE id=$2', ['INVALIDA', evento]), { code: '23514' })
+    assert.equal((await db.query('SELECT max(versao) AS versao FROM versoes_schema')).rows[0].versao, 4)
+  } finally { await db.close() }
+})
+
+test('V5 vincula trilhas, espaços, pessoas e agenda ao mesmo evento', async () => {
+  const db = new PGlite()
+  try {
+    await db.exec(await lerEntrada(new URL('db/inicializar.sql', raiz)))
+    const usuario = randomUUID(), evento = randomUUID(), outroEvento = randomUUID()
+    const atividade = randomUUID(), inscricao = randomUUID(), trilha = randomUUID()
+    await db.query("INSERT INTO usuarios(id,nome,email) VALUES ($1,'Teste','teste-v5@example.test')", [usuario])
+    await db.query("INSERT INTO eventos(id,titulo,organizador_id,estado) VALUES ($1,'Evento A',$3,'PUBLICADO'),($2,'Evento B',$3,'PUBLICADO')", [evento, outroEvento, usuario])
+    await db.query('INSERT INTO trilhas(id,evento_id,nome) VALUES ($1,$2,$3)', [trilha, evento, 'Tecnologia'])
+    await db.query("INSERT INTO atividades(id,evento_id,titulo,inicio,fim,trilha_id) VALUES ($1,$2,'Palestra','2026-10-10 09:00','2026-10-10 10:00',$3)", [atividade, evento, trilha])
+    await db.query('INSERT INTO inscricoes(id,evento_id,usuario_id) VALUES ($1,$2,$3)', [inscricao, evento, usuario])
+    await db.query('INSERT INTO agenda_atividades(inscricao_id,evento_id,usuario_id,atividade_id) VALUES ($1,$2,$3,$4)', [inscricao, evento, usuario, atividade])
+    await assert.rejects(db.query('INSERT INTO agenda_atividades(inscricao_id,evento_id,usuario_id,atividade_id) VALUES ($1,$2,$3,$4)', [inscricao, evento, usuario, atividade]), { code: '23505' })
+    await assert.rejects(db.query("UPDATE eventos SET frequencia_minima_percentual=101 WHERE id=$1", [evento]), { code: '23514' })
+    await assert.rejects(db.query("UPDATE atividades SET evento_id=$1 WHERE id=$2", [outroEvento, atividade]), { code: '23503' })
+    assert.equal((await db.query('SELECT max(versao) AS versao FROM versoes_schema')).rows[0].versao, 9)
+  } finally { await db.close() }
+})
+
+test('V6 impede respostas duplicadas e vínculos de questões de outro questionário', async () => {
+  const db = new PGlite()
+  try {
+    await db.exec(await lerEntrada(new URL('db/inicializar.sql', raiz)))
+    const usuario = randomUUID(), evento = randomUUID(), outro = randomUUID()
+    const questionario = randomUUID(), outroQuestionario = randomUUID()
+    const questao = randomUUID(), avaliacao = randomUUID()
+    await db.query("INSERT INTO usuarios(id,nome,email) VALUES ($1,'Teste','teste-v6@example.test')", [usuario])
+    await db.query("INSERT INTO eventos(id,titulo,organizador_id) VALUES ($1,'Evento A',$3),($2,'Evento B',$3)", [evento, outro, usuario])
+    await db.query("INSERT INTO questionarios(id,evento_id,titulo) VALUES ($1,$3,'Avaliação A'),($2,$4,'Avaliação B')", [questionario, outroQuestionario, evento, outro])
+    await db.query("INSERT INTO questoes(id,questionario_id,ordem,enunciado,tipo,opcoes) VALUES ($1,$2,1,'Gostou?','ESCOLHA_UNICA','[\"Sim\",\"Não\"]'::jsonb)", [questao, questionario])
+    await assert.rejects(db.query("INSERT INTO questoes(id,questionario_id,ordem,enunciado,tipo,opcoes) VALUES ($1,$2,2,'Inválida','ESCOLHA_UNICA','[]'::jsonb)", [randomUUID(), questionario]), { code: '23514' })
+    await db.query('INSERT INTO avaliacoes(id,questionario_id,usuario_id) VALUES ($1,$2,$3)', [avaliacao, outroQuestionario, usuario])
+    await assert.rejects(db.query('INSERT INTO respostas_avaliacao(avaliacao_id,questionario_id,questao_id,valor) VALUES ($1,$2,$3,$4)', [avaliacao, outroQuestionario, questao, 'Sim']), { code: '23503' })
+    await assert.rejects(db.query('INSERT INTO avaliacoes(id,questionario_id,usuario_id) VALUES ($1,$2,$3)', [randomUUID(), outroQuestionario, usuario]), { code: '23505' })
+  } finally { await db.close() }
+})
+
+test('V7 garante emissão única e identidade do destinatário', async () => {
+  const db = new PGlite()
+  try {
+    await db.exec(await lerEntrada(new URL('db/inicializar.sql', raiz)))
+    const usuario = randomUUID(), evento = randomUUID(), pessoa = randomUUID()
+    await db.query("INSERT INTO usuarios(id,nome,email) VALUES ($1,'Teste','teste-v7@example.test')", [usuario])
+    await db.query("INSERT INTO eventos(id,titulo,organizador_id) VALUES ($1,'Evento',$2)", [evento, usuario])
+    await db.query("INSERT INTO pessoas_evento(id,evento_id,nome) VALUES ($1,$2,'Palestrante')", [pessoa, evento])
+    await db.query("INSERT INTO certificados(id,evento_id,usuario_id,tipo) VALUES ($1,$2,$3,'PARTICIPANTE')", [randomUUID(), evento, usuario])
+    await assert.rejects(db.query("INSERT INTO certificados(id,evento_id,usuario_id,tipo) VALUES ($1,$2,$3,'PARTICIPANTE')", [randomUUID(), evento, usuario]), { code: '23505' })
+    await assert.rejects(db.query("INSERT INTO certificados(id,evento_id,pessoa_id,tipo) VALUES ($1,$2,$3,'PARTICIPANTE')", [randomUUID(), evento, pessoa]), { code: '23514' })
+    await db.query("INSERT INTO certificados(id,evento_id,pessoa_id,tipo) VALUES ($1,$2,$3,'PALESTRANTE')", [randomUUID(), evento, pessoa])
+    assert.equal((await db.query('SELECT count(*)::int AS total FROM certificados')).rows[0].total, 2)
+  } finally { await db.close() }
+})
+
+test('frequência calcula presenças obrigatórias, percentual e mínimo configurado', async () => {
+  const db = new PGlite()
+  try {
+    await db.exec(await lerEntrada(new URL('db/inicializar.sql', raiz)))
+    const usuario = randomUUID(), evento = randomUUID(), atividadeA = randomUUID(), atividadeB = randomUUID()
+    const inscricao = randomUUID(), chamada = randomUUID()
+    await db.query("INSERT INTO usuarios(id,nome,email) VALUES ($1,'Participante','participante@example.test')", [usuario])
+    await db.query("INSERT INTO eventos(id,titulo,organizador_id,estado,frequencia_minima_percentual) VALUES ($1,'Evento',$2,'ENCERRADO',50)", [evento, usuario])
+    await db.query("INSERT INTO atividades(id,evento_id,titulo) VALUES ($1,$3,'A'),($2,$3,'B')", [atividadeA, atividadeB, evento])
+    await db.query('INSERT INTO inscricoes(id,evento_id,usuario_id) VALUES ($1,$2,$3)', [inscricao, evento, usuario])
+    await db.query("INSERT INTO chamadas_presenca(id,atividade_id,evento_id,criada_por,codigo_hash,criada_em,expira_em) VALUES ($1,$2,$3,$4,$5,'2026-10-10 12:00Z','2026-10-10 12:05Z')", [chamada, atividadeA, evento, usuario, 'a'.repeat(64)])
+    await db.query("INSERT INTO presencas(id,atividade_id,evento_id,usuario_id,inscricao_id,chamada_id,registrada_em,origem) VALUES ($1,$2,$3,$4,$5,$6,'2026-10-10 12:01Z','QR')", [randomUUID(), atividadeA, evento, usuario, inscricao, chamada])
+    const fonte = await readFile(new URL('src/main/java/br/com/eventsbymc/eventsapi/adapter/out/jdbc/JdbcRelatoriosRepository.java', raiz), 'utf8')
+    const sql = fonte.match(/FREQUENCIA = """([\s\S]*?)"""/)[1].replace('?', '$1')
+    const row = (await db.query(sql, [evento])).rows[0]
+    assert.equal(Number(row.obrigatorias), 2)
+    assert.equal(Number(row.confirmadas), 1)
+    assert.equal(row.frequencia_minima_percentual, 50)
+  } finally { await db.close() }
+})
+
+test('V8 calcula permanência por atividade e impede marcação duplicada', async () => {
+  const db = new PGlite()
+  try {
+    await db.exec(await lerEntrada(new URL('db/inicializar.sql', raiz)))
+    const usuario = randomUUID(), evento = randomUUID(), atividade = randomUUID(), inscricao = randomUUID()
+    await db.query("INSERT INTO usuarios(id,nome,email) VALUES ($1,'Teste','teste-v8@example.test')", [usuario])
+    await db.query("INSERT INTO eventos(id,titulo,organizador_id,estado) VALUES ($1,'Evento',$2,'ENCERRADO')", [evento, usuario])
+    await db.query("INSERT INTO atividades(id,evento_id,titulo,inicio,fim,politica_frequencia,permanencia_minima_percentual) VALUES ($1,$2,'Oficina','2026-10-10 09:00','2026-10-10 11:00','PERCENTUAL_PERMANENCIA',75)", [atividade, evento])
+    await db.query('INSERT INTO inscricoes(id,evento_id,usuario_id) VALUES ($1,$2,$3)', [inscricao, evento, usuario])
+    const fonte = await readFile(new URL('src/main/java/br/com/eventsbymc/eventsapi/adapter/out/jdbc/JdbcRelatoriosRepository.java', raiz), 'utf8')
+    const sql = fonte.match(/FREQUENCIA = """([\s\S]*?)"""/)[1].replace('?', '$1')
+    const confirmadas = async () => Number((await db.query(sql, [evento])).rows[0].confirmadas)
+    assert.equal(await confirmadas(), 0)
+    await db.query("INSERT INTO registros_frequencia(id,atividade_id,evento_id,usuario_id,inscricao_id,marcacao,registrada_em,registrada_por) VALUES ($1,$2,$3,$4,$5,'ENTRADA','2026-10-10 09:00Z',$4)", [randomUUID(), atividade, evento, usuario, inscricao])
+    await db.query("INSERT INTO registros_frequencia(id,atividade_id,evento_id,usuario_id,inscricao_id,marcacao,registrada_em,registrada_por) VALUES ($1,$2,$3,$4,$5,'SAIDA','2026-10-10 10:20Z',$4)", [randomUUID(), atividade, evento, usuario, inscricao])
+    assert.equal(await confirmadas(), 0)
+    await db.query("UPDATE registros_frequencia SET registrada_em='2026-10-10 10:31Z' WHERE atividade_id=$1 AND marcacao='SAIDA'", [atividade])
+    assert.equal(await confirmadas(), 1)
+    await assert.rejects(db.query("INSERT INTO registros_frequencia(id,atividade_id,evento_id,usuario_id,inscricao_id,marcacao,registrada_por) VALUES ($1,$2,$3,$4,$5,'ENTRADA',$4)", [randomUUID(), atividade, evento, usuario, inscricao]), { code: '23505' })
+  } finally { await db.close() }
+})
+
+test('V9 aceita questionários distintos por atividade e preserva o geral do evento', async () => {
+  const db = new PGlite()
+  try {
+    await db.exec(await lerEntrada(new URL('db/inicializar.sql', raiz)))
+    const usuario = randomUUID(), evento = randomUUID(), outroEvento = randomUUID()
+    const atividadeA = randomUUID(), atividadeB = randomUUID(), atividadeC = randomUUID()
+    await db.query("INSERT INTO usuarios(id,nome,email) VALUES ($1,'Teste','teste-v9@example.test')", [usuario])
+    await db.query("INSERT INTO eventos(id,titulo,organizador_id) VALUES ($1,'Evento A',$3),($2,'Evento B',$3)", [evento, outroEvento, usuario])
+    await db.query("INSERT INTO atividades(id,evento_id,titulo) VALUES ($1,$4,'A'),($2,$4,'B'),($3,$4,'C')", [atividadeA, atividadeB, atividadeC, evento])
+    await db.query("INSERT INTO questionarios(id,evento_id,titulo) VALUES ($1,$2,'Geral')", [randomUUID(), evento])
+    await db.query("INSERT INTO questionarios(id,evento_id,atividade_id,titulo) VALUES ($1,$2,$3,'A')", [randomUUID(), evento, atividadeA])
+    await db.query("INSERT INTO questionarios(id,evento_id,atividade_id,titulo) VALUES ($1,$2,$3,'B')", [randomUUID(), evento, atividadeB])
+    await assert.rejects(db.query("INSERT INTO questionarios(id,evento_id,atividade_id,titulo) VALUES ($1,$2,$3,'A duplicado')", [randomUUID(), evento, atividadeA]), { code: '23505' })
+    await assert.rejects(db.query("INSERT INTO questionarios(id,evento_id,atividade_id,titulo) VALUES ($1,$2,$3,'Evento trocado')", [randomUUID(), outroEvento, atividadeC]), { code: '23503' })
+    assert.equal((await db.query('SELECT count(*)::int AS total FROM questionarios')).rows[0].total, 3)
+  } finally { await db.close() }
+})
+
+test('avaliação de atividade exige presença na própria atividade', async () => {
+  const db = new PGlite()
+  try {
+    await db.exec(await lerEntrada(new URL('db/inicializar.sql', raiz)))
+    const usuario = randomUUID(), evento = randomUUID(), atividadeA = randomUUID(), atividadeB = randomUUID()
+    const inscricao = randomUUID(), chamada = randomUUID()
+    await db.query("INSERT INTO usuarios(id,nome,email) VALUES ($1,'Teste','teste-elegivel@example.test')", [usuario])
+    await db.query("INSERT INTO eventos(id,titulo,organizador_id,estado) VALUES ($1,'Evento',$2,'PUBLICADO')", [evento, usuario])
+    await db.query("INSERT INTO atividades(id,evento_id,titulo) VALUES ($1,$3,'A'),($2,$3,'B')", [atividadeA, atividadeB, evento])
+    await db.query('INSERT INTO inscricoes(id,evento_id,usuario_id) VALUES ($1,$2,$3)', [inscricao, evento, usuario])
+    await db.query("INSERT INTO chamadas_presenca(id,atividade_id,evento_id,criada_por,codigo_hash,criada_em,expira_em) VALUES ($1,$2,$3,$4,$5,'2026-10-10 12:00Z','2026-10-10 12:05Z')", [chamada, atividadeA, evento, usuario, 'a'.repeat(64)])
+    await db.query("INSERT INTO presencas(id,atividade_id,evento_id,usuario_id,inscricao_id,chamada_id,registrada_em,origem) VALUES ($1,$2,$3,$4,$5,$6,'2026-10-10 12:01Z','QR')", [randomUUID(), atividadeA, evento, usuario, inscricao, chamada])
+    const fonte = await readFile(new URL('src/main/java/br/com/eventsbymc/eventsapi/adapter/out/jdbc/JdbcAvaliacaoRepository.java', raiz), 'utf8')
+    const sql = fonte.match(/private static boolean elegivel\([\s\S]*?String sql = """([\s\S]*?)"""/)[1]
+    const parametrizado = (() => { let i = 0; return sql.replace(/\?/g, () => `$${++i}`) })()
+    const elegivel = async atividade => (await db.query(parametrizado, [evento, usuario, atividade, atividade, atividade, atividade])).rows.length > 0
+    assert.equal(await elegivel(null), true)
+    assert.equal(await elegivel(atividadeA), true)
+    assert.equal(await elegivel(atividadeB), false)
   } finally { await db.close() }
 })

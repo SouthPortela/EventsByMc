@@ -1,5 +1,6 @@
 import { apiRequest } from '@/shared/services/httpClient'
 import type { EventoDetalhe, EventoResumo } from '../types/evento'
+import type { CategoriaEvento } from '../types/categoria'
 import { formatarData } from '../utils/formatarData'
 
 export interface DadosCriacaoEvento {
@@ -8,6 +9,7 @@ export interface DadosCriacaoEvento {
   local: string
   dataInicio: string
   dataFim: string
+  categoria: CategoriaEvento
 }
 
 interface EventoResposta {
@@ -18,6 +20,7 @@ interface EventoResposta {
   dataInicio: string | null
   dataFim: string | null
   estado: 'RASCUNHO' | 'PUBLICADO' | 'ENCERRADO'
+  categoria: CategoriaEvento
   atividades: {
     id: string
     titulo: string
@@ -35,7 +38,22 @@ function resumo(evento: EventoResposta): EventoResumo {
     dataInicio: evento.dataInicio,
     dataFim: evento.dataFim,
     estado: evento.estado,
+    categoria: evento.categoria,
   }
+}
+
+export async function alterarCategoriaEvento(
+  id: string,
+  categoria: CategoriaEvento,
+): Promise<EventoResumo> {
+  return resumo(
+    await apiRequest<EventoResposta>(`/eventos/${encodeURIComponent(id)}/categoria`, {
+      method: 'PATCH',
+      autenticada: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoria }),
+    }),
+  )
 }
 
 export async function listarEventos(): Promise<EventoResumo[]> {

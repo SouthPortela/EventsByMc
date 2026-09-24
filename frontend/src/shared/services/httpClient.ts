@@ -87,3 +87,27 @@ export async function apiRequest<T>(path: string, opcoes: OpcoesRequisicao = {})
 
   throw new ApiError(response.status, 'Resposta inesperada do servidor.')
 }
+
+export async function apiDownload(path: string, arquivo: string): Promise<void> {
+  const token = configuracao.obterToken()
+  if (!token) {
+    configuracao.aoNaoAutorizado()
+    throw new ApiError(401, 'Entre na sua conta para continuar.')
+  }
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!response.ok) {
+    if (response.status === 401 && token === configuracao.obterToken()) configuracao.aoNaoAutorizado()
+    const corpo: unknown = await response.json().catch(() => null)
+    throw new ApiError(response.status, mensagemDaApi(corpo))
+  }
+  const url = URL.createObjectURL(await response.blob())
+  const link = document.createElement('a')
+  link.href = url
+  link.download = arquivo
+  document.body.append(link)
+  link.click()
+  link.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+}

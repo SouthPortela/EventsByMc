@@ -9,7 +9,7 @@ const eventos: EventoResumo[] = [
     local: 'Auditório',
     vagas: 10,
     dataInicio: '2026-09-10T19:00:00-03:00',
-    categoria: 'Tecnologia',
+    categoria: 'TECNOLOGIA',
   },
   {
     id: '2',
@@ -17,7 +17,7 @@ const eventos: EventoResumo[] = [
     local: 'Laboratório',
     vagas: 5,
     dataInicio: '2026-09-11T19:00:00-03:00',
-    categoria: 'Design',
+    categoria: 'ACADEMICO',
   },
 ]
 
@@ -25,7 +25,7 @@ describe('filtrarEventos', () => {
   it('combina termo, categoria e local', () => {
     const resultado = filtrarEventos(eventos, {
       termo: 'simposio',
-      categoria: 'Tecnologia',
+      categoria: 'TECNOLOGIA',
       local: 'Auditório',
     })
 
@@ -34,5 +34,10 @@ describe('filtrarEventos', () => {
 
   it('retorna todos os eventos quando os filtros estão vazios', () => {
     expect(filtrarEventos(eventos, { termo: '', categoria: '', local: '' })).toHaveLength(2)
+  })
+
+  it('filtra pela categoria salva, mesmo quando o título não contém o tema', () => {
+    expect(filtrarEventos(eventos, { termo: '', categoria: 'ACADEMICO', local: '' }).map(e => e.id)).toEqual(['2'])
+    expect(filtrarEventos(eventos, { termo: 'academico', categoria: '', local: '' }).map(e => e.id)).toEqual(['2'])
   })
 })

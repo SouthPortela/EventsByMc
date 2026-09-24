@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue'
 import type { FiltrosEvento } from '../utils/filtrarEventos'
+import type { CategoriaEvento } from '../types/categoria'
 
 const props = defineProps<{
-  categorias: string[]
+  categorias: readonly { readonly codigo: CategoriaEvento; readonly nome: string }[]
   locais: string[]
   valoresIniciais: FiltrosEvento
 }>()
@@ -54,8 +55,8 @@ function limparFiltros(): void {
             class="form-select form-select-lg"
           >
             <option value="">Todas as categorias</option>
-            <option v-for="categoria in categorias" :key="categoria" :value="categoria">
-              {{ categoria }}
+            <option v-for="categoria in categorias" :key="categoria.codigo" :value="categoria.codigo">
+              {{ categoria.nome }}
             </option>
           </select>
         </div>

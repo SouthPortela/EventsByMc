@@ -21,7 +21,7 @@ final class RepositoriosEmMemoria {
         boolean conflito;
         private Evento copiar(Evento e) {
             return Evento.reconstituir(e.getId(), e.getTitulo(), e.getDescricao(), e.getOrganizador(),
-                    e.getInicio(), e.getFim(), e.getLocal(), e.getEstado(), e.getProgramacao().consultarAtividades());
+                    e.getInicio(), e.getFim(), e.getLocal(), e.getCategoria(), e.getEstado(), e.getProgramacao().consultarAtividades());
         }
         public Evento salvar(Evento e) { dados.put(e.getId(), copiar(e)); return e; }
         public Optional<Evento> buscarPorId(UUID id) { return Optional.ofNullable(dados.get(id)).map(this::copiar); }
@@ -31,6 +31,12 @@ final class RepositoriosEmMemoria {
             Evento e = dados.get(id);
             if (conflito || e == null || e.getEstado() != esperado) return false;
             if (destino == EstadoEvento.PUBLICADO) e.publicar(); else e.encerrar();
+            return true;
+        }
+        public synchronized boolean alterarCategoria(UUID id, CategoriaEvento categoria) {
+            Evento e = dados.get(id);
+            if (e == null) return false;
+            e.alterarCategoria(categoria);
             return true;
         }
     }

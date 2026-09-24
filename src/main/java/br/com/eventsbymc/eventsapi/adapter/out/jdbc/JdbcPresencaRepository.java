@@ -90,11 +90,25 @@ public final class JdbcPresencaRepository implements PresencaRepository {
     }
     public DadosPresenca.Inscricao inscrever(UUID usuarioId, UUID eventoId) {
         return transacao(c -> {
-            try (var s = c.prepareStatement("SELECT estado FROM eventos WHERE id = ? FOR SHARE")) {
+            Instant agora = agora(c);
+            Integer limite;
+            boolean inscricoesAbertas;
+            Instant inicioInscricoes;
+            Instant fimInscricoes;
+            try (var s = c.prepareStatement("""
+                    SELECT estado, inscricoes_abertas, inscricoes_inicio, inscricoes_fim,
+                           limite_inscritos FROM eventos WHERE id = ? FOR UPDATE
+                    """)) {
                 s.setObject(1, eventoId);
                 try (var r = s.executeQuery()) {
                     if (!r.next()) throw new RecursoNaoEncontradoException();
                     if (!"PUBLICADO".equals(r.getString(1))) throw new ConflitoOperacaoException("O evento não está aberto para inscrições.");
+                    inscricoesAbertas = r.getBoolean("inscricoes_abertas");
+                    inicioInscricoes = r.getTimestamp("inscricoes_inicio") == null ? null
+                            : r.getTimestamp("inscricoes_inicio").toInstant();
+                    fimInscricoes = r.getTimestamp("inscricoes_fim") == null ? null
+                            : r.getTimestamp("inscricoes_fim").toInstant();
+                    limite = (Integer) r.getObject("limite_inscritos");
                 }
             }
             // Serializa inscrições deste usuário, sem confiar no perfil guardado no navegador.
@@ -102,23 +116,73 @@ public final class JdbcPresencaRepository implements PresencaRepository {
                 s.setObject(1, usuarioId);
                 try (var r = s.executeQuery()) { if (!r.next()) throw new TokenInvalidoException("Sessão inválida.", null); }
             }
+            UUID inscricaoAnterior = null;
             try (var s = c.prepareStatement("SELECT id, estado FROM inscricoes WHERE evento_id = ? AND usuario_id = ?")) {
                 s.setObject(1, eventoId); s.setObject(2, usuarioId);
                 try (var r = s.executeQuery()) {
                     if (r.next()) {
-                        if (!"ATIVA".equals(r.getString("estado"))) throw new ConflitoOperacaoException("Inscrição cancelada. Procure o organizador.");
-                        return new DadosPresenca.Inscricao(r.getObject("id", UUID.class), "ATIVA");
+                        inscricaoAnterior = r.getObject("id", UUID.class);
+                        if ("ATIVA".equals(r.getString("estado")))
+                            return new DadosPresenca.Inscricao(inscricaoAnterior, "ATIVA");
                     }
                 }
             }
-            UUID id = UUID.randomUUID();
-            try (var s = c.prepareStatement("INSERT INTO inscricoes(id, evento_id, usuario_id) VALUES (?, ?, ?)")) {
-                s.setObject(1, id); s.setObject(2, eventoId); s.setObject(3, usuarioId); s.executeUpdate();
+            if (!inscricoesAbertas || inicioInscricoes != null && agora.isBefore(inicioInscricoes)
+                    || fimInscricoes != null && !agora.isBefore(fimInscricoes)) {
+                throw new ConflitoOperacaoException("Inscrições fechadas para este evento.");
+            }
+            if (limite != null) {
+                try (var s = c.prepareStatement("SELECT COUNT(*) FROM inscricoes WHERE evento_id = ? AND estado = 'ATIVA'")) {
+                    s.setObject(1, eventoId);
+                    try (var r = s.executeQuery()) {
+                        r.next();
+                        if (r.getLong(1) >= limite) throw new ConflitoOperacaoException("Evento sem vagas.");
+                    }
+                }
+            }
+            UUID id = inscricaoAnterior == null ? UUID.randomUUID() : inscricaoAnterior;
+            if (inscricaoAnterior == null) {
+                try (var s = c.prepareStatement("INSERT INTO inscricoes(id, evento_id, usuario_id) VALUES (?, ?, ?)")) {
+                    s.setObject(1, id); s.setObject(2, eventoId); s.setObject(3, usuarioId); s.executeUpdate();
+                }
+            } else {
+                try (var s = c.prepareStatement("UPDATE inscricoes SET estado = 'ATIVA', cancelada_em = NULL WHERE id = ?")) {
+                    s.setObject(1, id); s.executeUpdate();
+                }
             }
             try (var s = c.prepareStatement("INSERT INTO usuario_perfis(usuario_id, perfil) VALUES (?, 'PARTICIPANTE') ON CONFLICT DO NOTHING")) {
                 s.setObject(1, usuarioId); s.executeUpdate();
             }
             return new DadosPresenca.Inscricao(id, "ATIVA");
+        });
+    }
+    public DadosPresenca.Inscricao cancelarInscricao(UUID usuarioId, UUID eventoId) {
+        return transacao(c -> {
+            try (var s = c.prepareStatement("SELECT permitir_cancelamento FROM eventos WHERE id = ? FOR SHARE")) {
+                s.setObject(1, eventoId);
+                try (var r = s.executeQuery()) {
+                    if (!r.next()) throw new RecursoNaoEncontradoException();
+                    if (!r.getBoolean(1)) throw new ConflitoOperacaoException("O cancelamento está desabilitado para este evento.");
+                }
+            }
+            UUID inscricaoId;
+            String estado;
+            try (var s = c.prepareStatement("SELECT id, estado FROM inscricoes WHERE evento_id = ? AND usuario_id = ? FOR UPDATE")) {
+                s.setObject(1, eventoId); s.setObject(2, usuarioId);
+                try (var r = s.executeQuery()) {
+                    if (!r.next()) throw new RecursoNaoEncontradoException();
+                    inscricaoId = r.getObject("id", UUID.class);
+                    estado = r.getString("estado");
+                }
+            }
+            if ("CANCELADA".equals(estado)) return new DadosPresenca.Inscricao(inscricaoId, "CANCELADA");
+            try (var s = c.prepareStatement("DELETE FROM agenda_atividades WHERE usuario_id = ? AND evento_id = ?")) {
+                s.setObject(1, usuarioId); s.setObject(2, eventoId); s.executeUpdate();
+            }
+            try (var s = c.prepareStatement("UPDATE inscricoes SET estado = 'CANCELADA', cancelada_em = ? WHERE id = ?")) {
+                s.setTimestamp(1, Timestamp.from(agora(c))); s.setObject(2, inscricaoId); s.executeUpdate();
+            }
+            return new DadosPresenca.Inscricao(inscricaoId, "CANCELADA");
         });
     }
     public List<DadosPresenca.Atividade> listarAtividades(UUID eventoId) {
@@ -187,7 +251,7 @@ public final class JdbcPresencaRepository implements PresencaRepository {
     private Contexto bloquearAtividade(Connection c, UUID id) throws SQLException {
         // Emissão e confirmação usam os mesmos locks, incluindo o estado do evento.
         String sql = """
-            SELECT a.evento_id, a.titulo, e.organizador_id, e.estado
+            SELECT a.evento_id, a.titulo, a.politica_frequencia, e.organizador_id, e.estado
             FROM atividades a JOIN eventos e ON e.id = a.evento_id
             WHERE a.id = ? FOR SHARE OF e FOR UPDATE OF a
             """;
@@ -196,6 +260,8 @@ public final class JdbcPresencaRepository implements PresencaRepository {
             try (var r = s.executeQuery()) {
                 if (!r.next()) throw new RecursoNaoEncontradoException();
                 if (!"PUBLICADO".equals(r.getString("estado"))) throw new ConflitoOperacaoException("A chamada exige evento publicado.");
+                if (!"CHECKIN_UNICO".equals(r.getString("politica_frequencia")))
+                    throw new ConflitoOperacaoException("Esta atividade usa outra política de frequência.");
                 return new Contexto(r.getObject("evento_id", UUID.class), r.getObject("organizador_id", UUID.class), r.getString("titulo"));
             }
         }

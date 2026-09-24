@@ -20,6 +20,13 @@ public final class EventsApiApplication {
         Router router = RotasApi.criar(raiz.registrarUsuarioUseCase, raiz.autenticarUsuario,
                 raiz.consultarMinhaConta, raiz.eventos, raiz.objectMapper);
         RotasApi.adicionarPresenca(router, raiz.presencas, raiz.objectMapper);
+        RotasApi.adicionarProgramacao(router, raiz.programacao, raiz.objectMapper);
+        RotasApi.adicionarRelatorios(router, raiz.relatorios, raiz.objectMapper);
+        RotasApi.adicionarAvaliacoes(router, raiz.avaliacoes, raiz.objectMapper);
+        RotasApi.adicionarAvaliacoesAtividade(router, raiz.avaliacoes, raiz.objectMapper);
+        RotasApi.adicionarInteracao(router, raiz.interacao, raiz.objectMapper);
+        RotasApi.adicionarCertificados(router, raiz.certificados, raiz.objectMapper);
+        RotasApi.adicionarFrequencia(router, raiz.frequencia, raiz.objectMapper);
 
         ManipuladorGlobalDeExcessoes handlerComTratamentoDeErro =
                 new ManipuladorGlobalDeExcessoes(router, raiz.objectMapper);

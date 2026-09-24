@@ -37,6 +37,14 @@ class EventoTest {
         assertThrows(IllegalArgumentException.class, () -> new Evento("Evento", null, usuario));
     }
 
+    @Test
+    void armazenaCategoriaExplicitaERejeitaCategoriaAusente() {
+        Evento evento = new Evento("Semana de Tecnologia", "Conteúdo técnico", organizador(),
+                INICIO, FIM, "Campus", CategoriaEvento.TECNOLOGIA);
+        assertEquals(CategoriaEvento.TECNOLOGIA, evento.getCategoria());
+        assertThrows(IllegalArgumentException.class, () -> evento.alterarCategoria(null));
+    }
+
     private Usuario organizador() {
         Usuario usuario = new Usuario(new Pessoa("Ana", "ana@example.com"));
         usuario.adicionarPerfil(Perfil.ORGANIZADOR);

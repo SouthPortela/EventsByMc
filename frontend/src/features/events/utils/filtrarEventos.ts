@@ -1,5 +1,6 @@
 import type { EventoResumo } from '../types/evento'
 import { normalizarTexto } from './normalizarTexto'
+import { nomeCategoria } from '../types/categoria'
 
 export interface FiltrosEvento {
   termo: string
@@ -14,7 +15,8 @@ export function filtrarEventos(eventos: EventoResumo[], filtros: FiltrosEvento):
     const correspondeTermo =
       !termo ||
       normalizarTexto(evento.titulo).includes(termo) ||
-      normalizarTexto(evento.local).includes(termo)
+      normalizarTexto(evento.local).includes(termo) ||
+      normalizarTexto(nomeCategoria(evento.categoria)).includes(termo)
     const correspondeCategoria = !filtros.categoria || evento.categoria === filtros.categoria
     const correspondeLocal = !filtros.local || evento.local === filtros.local
 

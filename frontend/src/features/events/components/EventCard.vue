@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import AppIcon from '@/components/icons/AppIcon.vue'
 import { formatarData } from '../utils/formatarData'
 import type { EventoResumo } from '../types/evento'
+import { nomeCategoria } from '../types/categoria'
 
 const props = defineProps<{ evento: EventoResumo }>()
 const favorito = ref(false)
@@ -43,7 +44,7 @@ async function compartilhar(): Promise<void> {
       >
         <AppIcon class="text-primary-custom" name="calendar" :size="48" />
       </div>
-      <span v-if="evento.categoria" class="event-category-badge">{{ evento.categoria }}</span>
+      <span class="event-category-badge">{{ nomeCategoria(evento.categoria) }}</span>
       <button
         class="event-heart-btn"
         :class="{ 'text-danger': favorito }"

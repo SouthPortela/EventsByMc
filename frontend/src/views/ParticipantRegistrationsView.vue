@@ -1,11 +1,43 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import AppIcon from '@/components/icons/AppIcon.vue'
 import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader.vue'
 import { useParticipacao } from '@/features/attendance/composables/useParticipacao'
 import { formatarData } from '@/features/events/utils/formatarData'
+import { cancelarInscricao } from '@/features/attendance/services/presencaService'
+import { ApiError } from '@/shared/services/httpClient'
+import { baixarMeuCertificado, enviarMeuCertificado } from '@/features/certificates/services/certificadoService'
 
 const { dados, carregando, erro, recarregar } = useParticipacao()
+const cancelando = ref('')
+const erroCancelamento = ref('')
+const emitindo = ref('')
+const mensagemCertificado = ref('')
+async function certificado(eventoId: string, enviar: boolean): Promise<void> {
+  if (emitindo.value) return
+  emitindo.value = eventoId
+  erroCancelamento.value = ''
+  mensagemCertificado.value = ''
+  try {
+    if (enviar) { await enviarMeuCertificado(eventoId); mensagemCertificado.value = 'Certificado enviado ao e-mail cadastrado.' }
+    else await baixarMeuCertificado(eventoId)
+  } catch (e) { erroCancelamento.value = e instanceof ApiError ? e.message : 'Não foi possível emitir o certificado.' }
+  finally { emitindo.value = '' }
+}
+async function cancelar(eventoId: string): Promise<void> {
+  if (cancelando.value || !window.confirm('Cancelar sua inscrição? As atividades desse evento sairão da sua agenda.')) return
+  cancelando.value = eventoId
+  erroCancelamento.value = ''
+  try {
+    await cancelarInscricao(eventoId)
+    await recarregar()
+  } catch (e) {
+    erroCancelamento.value = e instanceof ApiError ? e.message : 'Não foi possível cancelar a inscrição.'
+  } finally {
+    cancelando.value = ''
+  }
+}
 </script>
 
 <template>
@@ -19,6 +51,9 @@ const { dados, carregando, erro, recarregar } = useParticipacao()
         ><RouterLink class="btn btn-primary-custom" to="/">Encontrar eventos</RouterLink></template
       >
     </DashboardPageHeader>
+
+    <div v-if="erroCancelamento" class="alert alert-warning" role="alert">{{ erroCancelamento }}</div>
+    <div v-if="mensagemCertificado" class="alert alert-success" role="status">{{ mensagemCertificado }}</div>
 
     <p v-if="carregando" role="status">Carregando inscrições...</p>
     <div v-else-if="erro" class="alert alert-warning" role="alert">
@@ -76,6 +111,18 @@ const { dados, carregando, erro, recarregar } = useParticipacao()
                 <span v-else class="small text-secondary">{{
                   inscricao.eventoEstado === 'ENCERRADO' ? 'Evento encerrado' : 'Fora do catálogo'
                 }}</span>
+                <button
+                  v-if="inscricao.estado === 'ATIVA'"
+                  class="btn btn-sm btn-outline-danger ms-2"
+                  type="button"
+                  :disabled="!!cancelando"
+                  @click="cancelar(inscricao.eventoId)"
+                >Cancelar inscrição</button>
+                <template v-if="inscricao.estado === 'ATIVA' && inscricao.eventoEstado === 'ENCERRADO'">
+                  <RouterLink class="btn btn-sm btn-outline-primary ms-2" :to="`/participante/avaliacoes/${inscricao.eventoId}`">Avaliar</RouterLink>
+                  <button class="btn btn-sm btn-outline-primary ms-2" :disabled="!!emitindo" @click="certificado(inscricao.eventoId, false)">Baixar certificado</button>
+                  <button class="btn btn-sm btn-outline-primary ms-2" :disabled="!!emitindo" @click="certificado(inscricao.eventoId, true)">Enviar por e-mail</button>
+                </template>
               </td>
             </tr>
           </tbody>

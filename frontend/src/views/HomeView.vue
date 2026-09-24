@@ -3,46 +3,33 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AppIcon, { type IconName } from '@/components/icons/AppIcon.vue'
 import EventGrid from '@/features/events/components/EventGrid.vue'
+import EventFilters from '@/features/events/components/EventFilters.vue'
 import { listarEventos } from '@/features/events/services/eventoService'
 import type { EventoResumo } from '@/features/events/types/evento'
-import { normalizarTexto } from '@/features/events/utils/normalizarTexto'
+import { categoriasEvento, ehCategoriaEvento, nomeCategoria, type CategoriaEvento } from '@/features/events/types/categoria'
+import { filtrarEventos, type FiltrosEvento } from '@/features/events/utils/filtrarEventos'
 
 interface CategoriaHome {
-  nome: string
+  codigo: CategoriaEvento
   icon: IconName
-  termos: string[]
 }
 
 const categorias: CategoriaHome[] = [
   {
-    nome: 'Tecnologia',
+    codigo: 'TECNOLOGIA',
     icon: 'monitor',
-    termos: [
-      'ciberseguranca',
-      'desenvolvimento',
-      'devops',
-      'cloud',
-      'redes',
-      'infraestrutura',
-      'hardware',
-      'banco de dados',
-      'inteligencia artificial',
-    ],
   },
   {
-    nome: 'Cursos e workshops',
+    codigo: 'CURSOS_E_WORKSHOPS',
     icon: 'clipboard',
-    termos: ['oficina', 'workshop', 'minicurso', 'bootcamp'],
   },
   {
-    nome: 'Negócios e carreiras',
+    codigo: 'NEGOCIOS_E_CARREIRAS',
     icon: 'briefcase',
-    termos: ['carreira', 'inovacao', 'mercado'],
   },
   {
-    nome: 'Acadêmico',
+    codigo: 'ACADEMICO',
     icon: 'book',
-    termos: ['academico', 'simposio', 'seminario', 'feira'],
   },
 ]
 
@@ -54,23 +41,23 @@ const mensagemErro = ref('')
 const limite = ref(9)
 
 const busca = computed(() => (typeof route.query.busca === 'string' ? route.query.busca : ''))
-const categoriaAtiva = computed(() =>
-  typeof route.query.categoria === 'string' ? route.query.categoria : '',
+const categoriaAtiva = computed(() => {
+  const valor = route.query.categoria
+  if (typeof valor !== 'string') return ''
+  if (ehCategoriaEvento(valor)) return valor
+  return categoriasEvento.find((categoria) => categoria.nome === valor)?.codigo ?? ''
+})
+const localAtivo = computed(() => (typeof route.query.local === 'string' ? route.query.local : ''))
+const filtrosAtivos = computed<FiltrosEvento>(() => ({
+  termo: busca.value,
+  categoria: categoriaAtiva.value,
+  local: localAtivo.value,
+}))
+const locais = computed(() =>
+  [...new Set(eventos.value.map((evento) => evento.local))].sort((a, b) => a.localeCompare(b, 'pt-BR')),
 )
 const destaques = computed(() => eventos.value.filter((evento) => evento.destaque).slice(0, 3))
-const eventosFiltrados = computed(() => {
-  const termo = normalizarTexto(busca.value)
-  const categoria = categorias.find((item) => item.nome === categoriaAtiva.value)
-
-  return eventos.value.filter((evento) => {
-    const conteudo = normalizarTexto(`${evento.titulo} ${evento.local} ${evento.categoria ?? ''}`)
-    const correspondeBusca = !termo || conteudo.includes(termo)
-    const correspondeCategoria =
-      !categoria || categoria.termos.some((item) => conteudo.includes(normalizarTexto(item)))
-
-    return correspondeBusca && correspondeCategoria
-  })
-})
+const eventosFiltrados = computed(() => filtrarEventos(eventos.value, filtrosAtivos.value))
 const eventosVisiveis = computed(() => eventosFiltrados.value.slice(0, limite.value))
 
 async function carregarEventos(): Promise<void> {
@@ -85,8 +72,8 @@ async function carregarEventos(): Promise<void> {
   }
 }
 
-function selecionarCategoria(nome: string): void {
-  const proximaCategoria = categoriaAtiva.value === nome ? undefined : nome
+function selecionarCategoria(codigo: CategoriaEvento): void {
+  const proximaCategoria = categoriaAtiva.value === codigo ? undefined : codigo
   void router.replace({
     name: 'home',
     query: { ...route.query, categoria: proximaCategoria },
@@ -94,7 +81,19 @@ function selecionarCategoria(nome: string): void {
   })
 }
 
-watch([busca, categoriaAtiva], () => {
+function aplicarFiltros(filtros: FiltrosEvento): void {
+  void router.replace({
+    name: 'home',
+    query: {
+      busca: filtros.termo.trim() || undefined,
+      categoria: filtros.categoria || undefined,
+      local: filtros.local || undefined,
+    },
+    hash: '#eventos',
+  })
+}
+
+watch([busca, categoriaAtiva, localAtivo], () => {
   limite.value = 9
 })
 
@@ -106,7 +105,7 @@ onMounted(carregarEventos)
     <section class="hero-section text-white">
       <img
         class="hero-bg-image"
-        src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1920&q=85"
+        src="https://images.unsplash.com/photo-1558008258-3256797b43f3?q=80&w=1331&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
         alt="Grande público reunido em um evento"
       />
       <div class="hero-overlay"></div>
@@ -128,7 +127,7 @@ onMounted(carregarEventos)
             <a class="btn btn-light rounded-pill fw-bold px-4 py-3" href="#eventos">
               Encontrar eventos
             </a>
-            <RouterLink class="btn btn-glass fw-bold px-4 py-3" to="/login?redirect=/organizador">
+            <RouterLink class="btn btn-glass fw-bold px-4 py-3" to="/organizador/eventos/novo">
               Criar meu evento
             </RouterLink>
           </div>
@@ -173,18 +172,18 @@ onMounted(carregarEventos)
           </p>
         </div>
         <div class="row g-3 g-lg-4">
-          <div v-for="categoria in categorias" :key="categoria.nome" class="col-6 col-lg-3">
+          <div v-for="categoria in categorias" :key="categoria.codigo" class="col-6 col-lg-3">
             <button
               class="category-box border-0 w-100 h-100"
-              :class="{ active: categoriaAtiva === categoria.nome }"
+              :class="{ active: categoriaAtiva === categoria.codigo }"
               type="button"
-              :aria-pressed="categoriaAtiva === categoria.nome"
-              @click="selecionarCategoria(categoria.nome)"
+              :aria-pressed="categoriaAtiva === categoria.codigo"
+              @click="selecionarCategoria(categoria.codigo)"
             >
               <span class="category-icon-wrapper text-primary-custom">
                 <AppIcon :name="categoria.icon" :size="27" />
               </span>
-              <span class="category-text d-block fw-bold text-dark">{{ categoria.nome }}</span>
+              <span class="category-text d-block fw-bold text-dark">{{ nomeCategoria(categoria.codigo) }}</span>
             </button>
           </div>
         </div>
@@ -204,7 +203,7 @@ onMounted(carregarEventos)
             <p class="text-secondary mb-0">{{ eventosFiltrados.length }} evento(s) encontrado(s)</p>
           </div>
           <button
-            v-if="busca || categoriaAtiva"
+            v-if="busca || categoriaAtiva || localAtivo"
             class="btn btn-outline-secondary"
             type="button"
             @click="router.replace({ name: 'home', hash: '#eventos' })"
@@ -212,6 +211,14 @@ onMounted(carregarEventos)
             Limpar filtros
           </button>
         </div>
+
+        <EventFilters
+          class="mb-4"
+          :categorias="categoriasEvento"
+          :locais="locais"
+          :valores-iniciais="filtrosAtivos"
+          @filtrar="aplicarFiltros"
+        />
 
         <div v-if="mensagemErro" class="alert alert-danger" role="alert">
           {{ mensagemErro }}

@@ -37,6 +37,12 @@ function post<T>(path: string, dados?: unknown): Promise<T> {
 export function inscrever(eventoId: string): Promise<{ id: string; estado: string }> {
   return post(`/eventos/${encodeURIComponent(eventoId)}/inscricoes`)
 }
+export function cancelarInscricao(eventoId: string): Promise<{ id: string; estado: string }> {
+  return apiRequest(`/eventos/${encodeURIComponent(eventoId)}/inscricoes/me`, {
+    method: 'DELETE',
+    autenticada: true,
+  })
+}
 export function listarAtividades(eventoId: string): Promise<AtividadePresenca[]> {
   return apiRequest(`/eventos/${encodeURIComponent(eventoId)}/atividades`, { autenticada: true })
 }

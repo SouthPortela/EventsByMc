@@ -8,6 +8,13 @@ ativa no evento e chamada válida por cinco minutos.
 A V3 converte contas antigas que tinham somente VISITANTE para PARTICIPANTE e
 remove VISITANTE de contas organizadoras/administradoras. VISITANTE passa a existir
 somente como estado anônimo no frontend, sem linha em `usuario_perfis`.
+A V4 acrescenta uma categoria explícita aos eventos. Registros antigos permanecem
+em `OUTROS` até serem classificados pelo organizador no painel; banners/imagens e
+palavras do título não são usados para adivinhar essa informação.
+A V5 modela trilhas, espaços, pessoas/papéis, agenda e regras de inscrição.
+A V6 adiciona questionários, respostas e mensagens; a V7 persiste certificados.
+A V8 configura a política de frequência por atividade e armazena marcações manuais
+auditáveis. A V9 permite questionários gerais e por atividade no mesmo evento.
 
 | Tabela nova | Responsabilidade |
 |---|---|
@@ -16,6 +23,12 @@ somente como estado anônimo no frontend, sem linha em `usuario_perfis`.
 | presencas | Uma marcação por usuário/atividade, ligada à inscrição e à chamada corretas |
 | limites_presenca | Contador persistente de tentativas por usuário/operação |
 | versoes_schema | Registro das versões aplicadas manualmente |
+| trilhas, espacos, pessoas_evento, atividade_pessoas | Programação e papéis |
+| agenda_atividades | Seleção pessoal de atividades, com vínculo à inscrição |
+| questionarios, questoes, avaliacoes, respostas_avaliacao | Avaliações configuráveis |
+| mensagens_evento | Conversas dos participantes de um evento |
+| certificados | Emissão única e histórico de envio |
+| registros_frequencia | Confirmação manual, entrada e saída por atividade |
 
 Chaves estrangeiras compostas impedem associar presença, inscrição e chamada de
 eventos diferentes. UNIQUE protege contra duplicidade, inclusive se o navegador
@@ -29,13 +42,11 @@ As regras de unicidade e referência seguem os mecanismos nativos do
 **Nenhum destes scripts foi executado contra o seu banco pelo agente.**
 Confirme a conexão selecionada e faça backup antes de alterar um banco existente.
 
-- Banco vazio: execute `db/inicializar.sql` pelo psql. Ele inclui V1, V2 e V3 em uma
+- Banco vazio: execute `db/inicializar.sql` pelo psql. Ele inclui V1 a V9 em uma
   única transação; não cria contas nem insere senhas ou dados demonstrativos.
-- Banco que já possui exatamente a V1: execute `db/atualizar-v2.sql` e depois
-  `db/atualizar-v3.sql`.
-- Banco com V2 aplicada: execute apenas `db/atualizar-v3.sql`.
-- Banco com V3 aplicada: não execute novamente. Consulte
-  `SELECT * FROM versoes_schema ORDER BY versao;`.
+- Banco existente: consulte `SELECT * FROM versoes_schema ORDER BY versao;` e execute
+  **somente as versões pendentes**, em ordem, de `db/atualizar-v2.sql` até
+  `db/atualizar-v9.sql`. Por exemplo, um banco em V4 precisa de V5, V6, V7, V8 e V9.
 - Banco parcialmente modificado/manualmente diferente da V1: compare o esquema
   antes. Não use o inicializador para tentar “consertar” esse banco.
 
@@ -54,12 +65,12 @@ psql -X -h localhost -U SEU_USUARIO -d events_dev -W -f db/inicializar.sql
 ```
 
 Para atualizar um banco V1, use os mesmos parâmetros de conexão e execute
-`db/atualizar-v2.sql`, depois `db/atualizar-v3.sql`. A senha é solicitada interativamente; não colocar
+`db/atualizar-v2.sql` até `db/atualizar-v9.sql`, em ordem. A senha é solicitada interativamente; não colocar
 senha no SQL, no frontend ou no histórico do terminal.
 
 Os comandos `\ir` e `\set` são do psql, não do Query Tool do pgAdmin.
-No pgAdmin, para um banco vazio, execute o conteúdo de V1, V2 e V3, nessa ordem, dentro
-de `BEGIN;` / `COMMIT;`. Para um banco V1, execute V2 e V3 nessa ordem.
+No pgAdmin, para um banco vazio, execute o conteúdo de V1 a V9, nessa ordem, dentro
+de `BEGIN;` / `COMMIT;`. Para um banco existente, execute apenas as versões pendentes.
 Se houver erro, use `ROLLBACK;` e investigue; não prossiga executando trechos avulsos.
 
 A V1 foi preservada. A V2 não usa DROP/TRUNCATE e recusa períodos incompletos
@@ -67,18 +78,22 @@ A V1 foi preservada. A V2 não usa DROP/TRUNCATE e recusa períodos incompletos
 falha e precisa de uma correção de dados previamente revisada.
 Os scripts não são de reaplicação silenciosa: executar uma versão duas vezes gera erro.
 O backend não aplica migrações automaticamente.
-No Docker Compose, o contêiner PostgreSQL executa V1, V2 e V3 quando o volume
-está vazio. Em um volume já inicializado, aplique V3 manualmente após backup.
-Para um volume Docker que já possui V2, abra `docker compose exec postgres-db sh`,
-entre no `psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"`, confirme que a versão 3
-ainda não aparece em `SELECT * FROM versoes_schema ORDER BY versao;` e execute:
+No Docker Compose, o contêiner PostgreSQL executa V1 a V9 quando o volume
+está vazio. Em um volume já inicializado, aplique as versões pendentes manualmente
+após backup. Para um volume Docker que já possui V4, abra
+`docker compose exec postgres-db sh`, entre no
+`psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"`, confirme a versão atual
+em `SELECT * FROM versoes_schema ORDER BY versao;` e aplique, uma a uma:
 
 ```sql
 \set ON_ERROR_STOP on
 BEGIN;
-\i /docker-entrypoint-initdb.d/V3__perfis_de_contas_autenticadas.sql
+\i /docker-entrypoint-initdb.d/V5__programacao_inscricoes_agenda.sql
 COMMIT;
 ```
+
+Repita com V6, V7, V8 e V9, nessa ordem, cada uma em transação própria; nunca
+reaplique uma versão já registrada. Após atualizar, confirme que o máximo é 9.
 
 Essa pasta está montada no contêiner pelo Compose. Não use `docker compose down -v`
 para atualizar perfis, pois isso apagaria o banco persistido.
@@ -141,7 +156,8 @@ ativa; ela não depende do menu nem confia em um perfil editado no navegador.
 O organizador controla quando abrir a chamada em um evento publicado. Nesta versão,
 o período da atividade organiza o cronograma, mas não restringe o horário de emissão:
 a janela de cinco minutos começa no momento da emissão, segundo o relógio do banco.
-Não implementamos controle de entrada/saída ou cálculo de percentual de frequência.
+Atividades com política manual, entrada/saída ou percentual de permanência usam
+marcações auditáveis, não o QR; a política é escolhida ao criar cada atividade.
 
 ## Celular e QR
 
@@ -198,9 +214,10 @@ isso não transforma este mecanismo de frequência em autenticação multifator.
 
 ## Verificação automatizada
 
-Na validação de 22/09/2026: 42 testes frontend aprovados; build, Oxlint e ESLint
-aprovados; 35 testes Java aprovados e 6 testes dependentes de banco ignorados;
-3 cenários SQL aprovados em PostgreSQL embarcado.
+Na validação de 24/09/2026: as migrações V1 a V9, casos de uso e o frontend foram
+cobertos por testes. Neste Windows, a suíte HTTP precisou do parâmetro de
+diretório temporário do JDK mostrado abaixo; sem ele, o JDK falhava ao abrir
+o loopback antes de iniciar os testes de transporte.
 
 O audit do npm apontou dois avisos moderados no Vitest/@vitest/mocker já utilizado
 no projeto (GHSA-82fw-gwwq-j7x9), não na biblioteca de QR. A atualização do conjunto
@@ -210,9 +227,15 @@ O Checkstyle não está configurado/disponível no cache Maven desta máquina.
 - Frontend: `npm run test:run`, `npm run build`, Oxlint e ESLint.
 - Java: `mvn test`, com os testes de transporte usando servidor/JWT reais e dublês
   das portas de persistência. Os testes dependentes de banco continuam condicionais.
-- SQL: `db/tests/schema.mjs` testa V1+V2+V3 em banco vazio, atualização preservando
-  registros, unicidade, FKs, períodos, validade e limite de tentativas. Também
+- SQL: `db/tests/schema.mjs` testa V1 a V9 em banco vazio, atualização preservando
+  registros, unicidade, FKs, períodos, frequência e limite de tentativas. Também
   verifica as consultas reais do adaptador por EXPLAIN, sem executar suas escritas.
+
+Neste Windows, execute o Maven com
+`-DargLine=-Djdk.net.unixdomain.tmpdir=C:\Users\marcos.portela\IdeaProjects\events-api\target`
+para que os testes HTTP usem um diretório temporário gravável. Em outros sistemas,
+o `mvn test` normal pode ser suficiente. O pacote Java foi gerado com `mvn package`
+após baixar os plugins ausentes do cache local. O Compose não foi executado aqui.
 
 Para executar os testes SQL sem acessar o PostgreSQL configurado na aplicação:
 
@@ -228,8 +251,9 @@ JDBC e de concorrência em um servidor PostgreSQL real, nem o teste com celular.
 
 ## O que continua faltando no produto
 
-Esta etapa não completa todo o modelo do sistema: imagens no banco, agenda individual,
-controle de vagas por atividade, cancelamento via API, correção manual auditada de
-presença, relatórios, questionários/avaliações e certificados permanecem pendentes.
-Digitar o código pelo participante não é o lançamento manual feito por um organizador.
-As telas de listagem de inscrições e relatórios ainda são demonstrativas.
+Continuam fora desta entrega: imagens no banco, edição/exclusão de eventos e atividades,
+paginação de mensagens, moderação da comunidade e automação de envio em massa.
+O envio individual de certificado exige `SMTP_HOST`, `SMTP_PORT` (465 por padrão),
+`SMTP_USERNAME`, `SMTP_PASSWORD` e `SMTP_FROM` no servidor. O adaptador exige TLS
+implícito; nenhum segredo é enviado ao frontend ou persistido no repositório.
+Um ambiente sem SMTP continua permitindo baixar o PDF.

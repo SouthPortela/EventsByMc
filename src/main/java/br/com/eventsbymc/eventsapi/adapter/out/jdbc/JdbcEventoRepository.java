@@ -1,6 +1,7 @@
 package br.com.eventsbymc.eventsapi.adapter.out.jdbc;
 
 import br.com.eventsbymc.eventsapi.domain.model.Atividade;
+import br.com.eventsbymc.eventsapi.domain.model.CategoriaEvento;
 import br.com.eventsbymc.eventsapi.domain.model.EstadoEvento;
 import br.com.eventsbymc.eventsapi.domain.model.Evento;
 import br.com.eventsbymc.eventsapi.domain.model.Perfil;
@@ -22,7 +23,7 @@ import java.util.UUID;
 // Implementação PostgreSQL da porta de persistência de eventos. 
 public final class JdbcEventoRepository implements EventoRepository {
     private static final String SELECT_EVENTO = """
-            SELECT e.id, e.titulo, e.descricao, e.inicio, e.fim, e.local, e.estado,
+            SELECT e.id, e.titulo, e.descricao, e.inicio, e.fim, e.local, e.estado, e.categoria,
                    u.id AS usuario_id, u.nome AS organizador_nome, u.email AS organizador_email, u.senha_hash
               FROM eventos e
               JOIN usuarios u ON u.id = e.organizador_id
@@ -84,6 +85,18 @@ public final class JdbcEventoRepository implements EventoRepository {
     }
 
     @Override
+    public boolean alterarCategoria(UUID id, CategoriaEvento categoria) {
+        try (Connection connection = connectionFactory.abrirConexao();
+             PreparedStatement statement = connection.prepareStatement("UPDATE eventos SET categoria = ? WHERE id = ?")) {
+            statement.setString(1, categoria.name());
+            statement.setObject(2, id);
+            return statement.executeUpdate() == 1;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Não foi possível alterar a categoria do evento.", exception);
+        }
+    }
+
+    @Override
     public List<Evento> listar() {
         List<Evento> eventos = new ArrayList<>();
         try (Connection connection = connectionFactory.abrirConexao();
@@ -113,17 +126,18 @@ public final class JdbcEventoRepository implements EventoRepository {
 
     private void salvarEvento(Connection connection, Evento evento) throws SQLException {
         String sql = """
-                INSERT INTO eventos (id, titulo, descricao, organizador_id, inicio, fim, local, estado)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO eventos (id, titulo, descricao, organizador_id, inicio, fim, local, estado, categoria)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (id) DO UPDATE SET titulo = EXCLUDED.titulo, descricao = EXCLUDED.descricao,
                     organizador_id = EXCLUDED.organizador_id, inicio = EXCLUDED.inicio, fim = EXCLUDED.fim,
-                    local = EXCLUDED.local, estado = EXCLUDED.estado
+                    local = EXCLUDED.local, estado = EXCLUDED.estado, categoria = EXCLUDED.categoria
                 """;
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setObject(1, evento.getId()); statement.setString(2, evento.getTitulo());
             statement.setString(3, evento.getDescricao()); statement.setObject(4, evento.getOrganizador().getId());
             statement.setTimestamp(5, timestamp(evento.getInicio())); statement.setTimestamp(6, timestamp(evento.getFim()));
             statement.setString(7, evento.getLocal()); statement.setString(8, evento.getEstado().name());
+            statement.setString(9, evento.getCategoria().name());
             statement.executeUpdate();
         }
     }
@@ -150,7 +164,8 @@ public final class JdbcEventoRepository implements EventoRepository {
         Usuario organizador = Usuario.reconstituir(usuarioId, new Pessoa(row.getString("organizador_nome"), row.getString("organizador_email")),
                 row.getString("senha_hash"), buscarPerfis(connection, usuarioId));
         return Evento.reconstituir(row.getObject("id", UUID.class), row.getString("titulo"), row.getString("descricao"), organizador,
-                localDateTime(row, "inicio"), localDateTime(row, "fim"), row.getString("local"), EstadoEvento.valueOf(row.getString("estado")));
+                localDateTime(row, "inicio"), localDateTime(row, "fim"), row.getString("local"),
+                CategoriaEvento.valueOf(row.getString("categoria")), EstadoEvento.valueOf(row.getString("estado")));
     }
 
     private EnumSet<Perfil> buscarPerfis(Connection connection, UUID usuarioId) throws SQLException {
@@ -171,7 +186,7 @@ public final class JdbcEventoRepository implements EventoRepository {
             }
         }
         return Evento.reconstituir(evento.getId(), evento.getTitulo(), evento.getDescricao(), evento.getOrganizador(),
-                evento.getInicio(), evento.getFim(), evento.getLocal(), evento.getEstado(), atividades);
+                evento.getInicio(), evento.getFim(), evento.getLocal(), evento.getCategoria(), evento.getEstado(), atividades);
     }
 
     private static Timestamp timestamp(java.time.LocalDateTime value) { return value == null ? null : Timestamp.valueOf(value); }
