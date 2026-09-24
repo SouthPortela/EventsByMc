@@ -33,6 +33,61 @@ public final class JdbcPresencaRepository implements PresencaRepository {
             r.next(); return r.getTimestamp(1).toInstant();
         }
     }
+    public DadosPresenca.Participacao consultarParticipacao(UUID usuarioId) {
+        return transacao(c -> {
+            var inscricoes = new ArrayList<DadosPresenca.InscricaoResumo>();
+            String sqlInscricoes = """
+                SELECT i.id, i.evento_id, i.estado, i.criada_em,
+                       e.titulo, e.inicio, e.fim, e.local, e.estado AS evento_estado
+                  FROM inscricoes i JOIN eventos e ON e.id = i.evento_id
+                 WHERE i.usuario_id = ?
+                 ORDER BY i.criada_em DESC, i.id
+                """;
+            try (var s = c.prepareStatement(sqlInscricoes)) {
+                s.setObject(1, usuarioId);
+                try (var r = s.executeQuery()) {
+                    while (r.next()) inscricoes.add(new DadosPresenca.InscricaoResumo(
+                            r.getObject("id", UUID.class), r.getObject("evento_id", UUID.class),
+                            r.getString("titulo"), r.getObject("inicio", java.time.LocalDateTime.class),
+                            r.getObject("fim", java.time.LocalDateTime.class), r.getString("local"),
+                            r.getString("evento_estado"), r.getString("estado"),
+                            r.getTimestamp("criada_em").toInstant()));
+                }
+            }
+            var atividades = new ArrayList<DadosPresenca.AtividadeAgenda>();
+            String sqlAgenda = """
+                SELECT a.id, a.evento_id, e.titulo AS evento_titulo, a.titulo,
+                       a.inicio, a.fim, COALESCE(a.local, e.local) AS local,
+                       p.registrada_em
+                  FROM inscricoes i
+                  JOIN eventos e ON e.id = i.evento_id
+                  JOIN atividades a ON a.evento_id = i.evento_id
+                  LEFT JOIN presencas p ON p.atividade_id = a.id AND p.usuario_id = i.usuario_id
+                 WHERE i.usuario_id = ? AND i.estado = 'ATIVA'
+                 ORDER BY a.inicio NULLS LAST, a.id
+                """;
+            try (var s = c.prepareStatement(sqlAgenda)) {
+                s.setObject(1, usuarioId);
+                try (var r = s.executeQuery()) {
+                    while (r.next()) {
+                        Timestamp presenca = r.getTimestamp("registrada_em");
+                        atividades.add(new DadosPresenca.AtividadeAgenda(
+                                r.getObject("id", UUID.class), r.getObject("evento_id", UUID.class),
+                                r.getString("evento_titulo"), r.getString("titulo"),
+                                r.getObject("inicio", java.time.LocalDateTime.class),
+                                r.getObject("fim", java.time.LocalDateTime.class), r.getString("local"),
+                                presenca == null ? null : presenca.toInstant()));
+                    }
+                }
+            }
+            long totalPresencas;
+            try (var s = c.prepareStatement("SELECT COUNT(*) FROM presencas WHERE usuario_id = ?")) {
+                s.setObject(1, usuarioId);
+                try (var r = s.executeQuery()) { r.next(); totalPresencas = r.getLong(1); }
+            }
+            return new DadosPresenca.Participacao(inscricoes, atividades, totalPresencas);
+        });
+    }
     public DadosPresenca.Inscricao inscrever(UUID usuarioId, UUID eventoId) {
         return transacao(c -> {
             try (var s = c.prepareStatement("SELECT estado FROM eventos WHERE id = ? FOR SHARE")) {

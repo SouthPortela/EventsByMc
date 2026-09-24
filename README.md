@@ -38,6 +38,8 @@ agora possuem endpoints e consumo real no Vue, sem fallback para eventos simulad
 Consulte os [contratos, execução local e limitações](docs/api/contratos-webapp.md).
 O [roteiro didático anterior](docs/api/integracao-webapp.md) foi mantido como histórico;
 o documento de contratos descreve o estado implementado.
+O módulo do participante consulta inscrições, agenda e presenças reais pelo endpoint
+`GET /usuarios/me/participacao`; veja o [contrato de presença](docs/api/presenca.md).
 
 ## Execução dos três serviços com Docker
 

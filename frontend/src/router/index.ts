@@ -42,7 +42,7 @@ const router = createRouter({
     {
       path: '/participante',
       component: DashboardLayout,
-      meta: { minRole: 'PARTICIPANTE', dashboard: true, apiPendente: true },
+      meta: { minRole: 'PARTICIPANTE', dashboard: true },
       children: [
         {
           path: '',

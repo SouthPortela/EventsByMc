@@ -198,8 +198,8 @@ isso não transforma este mecanismo de frequência em autenticação multifator.
 
 ## Verificação automatizada
 
-Na validação de 22/09/2026: 39 testes frontend aprovados; build, Oxlint e ESLint
-aprovados; 33 testes Java aprovados e 6 testes dependentes de banco ignorados;
+Na validação de 22/09/2026: 42 testes frontend aprovados; build, Oxlint e ESLint
+aprovados; 35 testes Java aprovados e 6 testes dependentes de banco ignorados;
 3 cenários SQL aprovados em PostgreSQL embarcado.
 
 O audit do npm apontou dois avisos moderados no Vitest/@vitest/mocker já utilizado

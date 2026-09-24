@@ -49,8 +49,19 @@ test('inicialização completa, constraints e consultas do adaptador de presenç
     // EXPLAIN verifica sintaxe/tipos das consultas reais, sem executar INSERT/UPDATE.
     const fonte = await readFile(new URL('src/main/java/br/com/eventsbymc/eventsapi/adapter/out/jdbc/JdbcPresencaRepository.java', raiz), 'utf8')
     const sqls = [...fonte.matchAll(/prepareStatement\("([^"]+)"\)/g)].map(m => m[1])
-    sqls.push(...[...fonte.matchAll(/String sql = """([\s\S]*?)"""/g)].map(m => m[1]))
+    sqls.push(...[...fonte.matchAll(/String\s+\w+\s*=\s*"""([\s\S]*?)"""/g)].map(m => m[1]))
     assert.ok(sqls.length >= 20)
+    const sqlInscricoes = sqls.find(sql => sql.includes('FROM inscricoes i JOIN eventos e'))
+    const sqlAgenda = sqls.find(sql => sql.includes('JOIN atividades a ON a.evento_id = i.evento_id'))
+    assert.ok(sqlInscricoes)
+    assert.ok(sqlAgenda)
+    assert.equal((await db.query(sqlInscricoes.replace('?', '$1'), [usuario])).rows.length, 1)
+    assert.equal((await db.query(sqlInscricoes.replace('?', '$1'), [outro])).rows.length, 0)
+    const agenda = (await db.query(sqlAgenda.replace('?', '$1'), [usuario])).rows
+    assert.equal(agenda.length, 1)
+    assert.equal(agenda[0].id, atividade)
+    assert.ok(agenda[0].registrada_em)
+    assert.equal((await db.query(sqlAgenda.replace('?', '$1'), [outro])).rows.length, 0)
     for (const sql of sqls) {
       let indice = 0
       const parametrizado = sql.replace(/\?/g, () => '$' + ++indice)

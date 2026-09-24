@@ -113,6 +113,9 @@ watch(
             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
               <li><RouterLink class="dropdown-item" to="/conta">Minha conta</RouterLink></li>
               <li>
+                <RouterLink class="dropdown-item" to="/participante">Minha participação</RouterLink>
+              </li>
+              <li>
                 <RouterLink class="dropdown-item" to="/presenca">Confirmar presença</RouterLink>
               </li>
               <li>
@@ -179,6 +182,11 @@ watch(
             >
             <RouterLink class="text-primary-custom text-decoration-none py-2 px-2" to="/conta"
               >Minha conta</RouterLink
+            >
+            <RouterLink
+              class="text-primary-custom text-decoration-none py-2 px-2"
+              to="/participante"
+              >Minha participação</RouterLink
             >
             <RouterLink
               class="text-primary-custom text-decoration-none py-2 px-2 rounded fw-bold"
