@@ -28,6 +28,8 @@ public final class AvaliacoesUseCase implements OperacoesAvaliacao {
         autenticado(usuarioId);
         var usuario = usuarios.buscarPorId(usuarioId).orElseThrow();
         var evento = eventos.buscarPorId(eventoId).orElseThrow(RecursoNaoEncontradoException::new);
+        if (evento.getEstado() == EstadoEvento.SUSPENSO || evento.getEstado() == EstadoEvento.EXCLUIDO)
+            throw new RecursoNaoEncontradoException();
         if (!usuario.possuiPerfil(Perfil.ADMINISTRADOR)
                 && !(usuario.possuiPerfil(Perfil.ORGANIZADOR) && evento.getOrganizador().getId().equals(usuarioId)))
             throw new AcessoNegadoException();

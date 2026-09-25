@@ -8,6 +8,7 @@ import br.com.eventsbymc.eventsapi.application.port.out.EventoRepository;
 import br.com.eventsbymc.eventsapi.application.port.out.InteracaoRepository;
 import br.com.eventsbymc.eventsapi.application.port.out.UsuarioRepository;
 import br.com.eventsbymc.eventsapi.domain.model.Perfil;
+import br.com.eventsbymc.eventsapi.domain.model.EstadoEvento;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,6 +23,8 @@ public final class InteracaoUseCase implements OperacoesInteracao {
         var usuario = usuarios.buscarPorId(usuarioId)
                 .orElseThrow(() -> new TokenInvalidoException("Sessão inválida.", null));
         var evento = eventos.buscarPorId(eventoId).orElseThrow(RecursoNaoEncontradoException::new);
+        if (evento.getEstado() == EstadoEvento.SUSPENSO || evento.getEstado() == EstadoEvento.EXCLUIDO)
+            throw new RecursoNaoEncontradoException();
         if (!usuario.possuiPerfil(Perfil.ADMINISTRADOR)
                 && !evento.getOrganizador().getId().equals(usuarioId)
                 && !interacao.participanteAtivo(eventoId, usuarioId)) throw new AcessoNegadoException();

@@ -275,7 +275,8 @@ public final class JdbcProgramacaoRepository implements ProgramacaoRepository {
     public List<DadosProgramacao.AgendaItem> consultarAgenda(UUID usuarioId) {
         var lista = new ArrayList<DadosProgramacao.AgendaItem>();
         String sql = SELECT_ATIVIDADES + " JOIN agenda_atividades ga ON ga.atividade_id = a.id"
-                + " WHERE ga.usuario_id = ? ORDER BY a.inicio NULLS LAST, a.id";
+                + " JOIN eventos e ON e.id = a.evento_id"
+                + " WHERE ga.usuario_id = ? AND e.estado = 'PUBLICADO' ORDER BY a.inicio NULLS LAST, a.id";
         try (var c = conexoes.abrirConexao(); var s = c.prepareStatement(sql)) {
             s.setObject(1, usuarioId);
             try (var r = s.executeQuery()) {

@@ -94,9 +94,11 @@ Exemplos de rotas com o prefixo `/api` usado pelo navegador:
 
 Os detalhes de métodos, filtros e permissões estão na documentação da API. O prefixo `/api` é tratado pelo proxy; as rotas Java são registradas sem ele.
 
-O PostgreSQL usa scripts **V1–V9** em `src/main/resources/db/migration/`, abrangendo usuários, eventos, inscrições, presença, programação, agenda, avaliações, mensagens e certificados. A API **não migra o banco ao iniciar**. Um volume novo no Docker recebe V1–V9; `db/inicializar.sql` prepara um banco vazio fora do Compose. Em um banco existente, faça backup, consulte `versoes_schema` e aplique apenas os scripts `db/atualizar-vN.sql` pendentes, em ordem. Reiniciar o Compose não atualiza um volume já inicializado.
+O PostgreSQL usa scripts **V1–V10** em `src/main/resources/db/migration/`, abrangendo usuários, eventos, inscrições, presença, programação, agenda, avaliações, mensagens, certificados e moderação. A API **não migra o banco ao iniciar**. Um volume novo no Docker recebe V1–V10; `db/inicializar.sql` prepara um banco vazio fora do Compose. Em um banco existente, faça backup, consulte `versoes_schema` e aplique apenas os scripts `db/atualizar-vN.sql` pendentes, em ordem. Reiniciar o Compose não atualiza um volume já inicializado.
 
 O [guia do banco](db/README.md) detalha a atualização e a criação controlada do primeiro administrador. O cadastro público nunca concede ADMINISTRADOR; após mudar um perfil no banco, faça login novamente para receber um JWT atualizado.
+
+O painel administrativo consulta eventos de todos os organizadores, usuários com e-mails mascarados e decisões de moderação. O administrador pode suspender, restaurar como rascunho ou excluir logicamente eventos com motivo obrigatório; a exclusão remove o conteúdo textual, mas mantém inscrições, presenças e certificados vinculados. Consulte [administração da API](docs/api/administracao.md). O backend ainda não persiste banners/fotos de eventos; não há mídia armazenada para remover nesta versão.
 
 ## Executar com Docker
 

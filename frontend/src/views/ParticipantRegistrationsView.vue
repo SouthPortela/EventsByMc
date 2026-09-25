@@ -109,7 +109,9 @@ async function cancelar(eventoId: string): Promise<void> {
                   >Detalhes</RouterLink
                 >
                 <span v-else class="small text-secondary">{{
-                  inscricao.eventoEstado === 'ENCERRADO' ? 'Evento encerrado' : 'Fora do catálogo'
+                  inscricao.eventoEstado === 'ENCERRADO' ? 'Evento encerrado'
+                    : inscricao.eventoEstado === 'SUSPENSO' ? 'Evento suspenso'
+                    : inscricao.eventoEstado === 'EXCLUIDO' ? 'Evento excluído' : 'Fora do catálogo'
                 }}</span>
                 <button
                   v-if="inscricao.estado === 'ATIVA'"

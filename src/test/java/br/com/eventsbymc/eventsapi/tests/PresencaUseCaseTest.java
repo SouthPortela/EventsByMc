@@ -59,6 +59,12 @@ class PresencaUseCaseTest {
         assertEquals("ATIVA", caso.inscrever(participante.getId(), UUID.randomUUID()).estado());
         assertThrows(TokenInvalidoException.class, () -> caso.inscrever(UUID.randomUUID(), UUID.randomUUID()));
     }
+    @Test void administradorTambemPodeParticiparSemSerOrganizador() {
+        var administrador = RepositoriosEmMemoria.usuario(usuarios, Perfil.ADMINISTRADOR);
+        assertEquals("ATIVA", caso.inscrever(administrador.getId(), UUID.randomUUID()).estado());
+        caso.consultarParticipacao(administrador.getId());
+        assertEquals(administrador.getId(), repo.consultaUsuarioId);
+    }
     @Test void resumoDaParticipacaoUsaIdentidadeAutenticada() {
         var participante = RepositoriosEmMemoria.usuario(usuarios, Perfil.PARTICIPANTE);
         var resultado = caso.consultarParticipacao(participante.getId());

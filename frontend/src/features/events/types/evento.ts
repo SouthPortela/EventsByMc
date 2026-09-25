@@ -7,7 +7,7 @@ export interface EventoResumo {
   vagas?: number
   dataInicio: string | null
   dataFim?: string | null
-  estado?: 'RASCUNHO' | 'PUBLICADO' | 'ENCERRADO'
+  estado?: 'RASCUNHO' | 'PUBLICADO' | 'ENCERRADO' | 'SUSPENSO' | 'EXCLUIDO'
   categoria: CategoriaEvento
   modalidade?: 'PRESENCIAL' | 'ONLINE' | 'HIBRIDO'
   banner?: MidiaReferencia

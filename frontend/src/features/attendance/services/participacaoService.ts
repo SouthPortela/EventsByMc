@@ -7,7 +7,7 @@ export interface InscricaoResumo {
   eventoInicio: string | null
   eventoFim: string | null
   eventoLocal: string | null
-  eventoEstado: 'RASCUNHO' | 'PUBLICADO' | 'ENCERRADO'
+  eventoEstado: 'RASCUNHO' | 'PUBLICADO' | 'ENCERRADO' | 'SUSPENSO' | 'EXCLUIDO'
   estado: 'ATIVA' | 'CANCELADA'
   criadaEm: string
 }

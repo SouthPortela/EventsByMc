@@ -87,19 +87,20 @@ implícito, não STARTTLS na porta 587.
 `GET/POST /eventos/{id}/mensagens` exibe/publica as 50 mensagens mais recentes.
 Leitura é restrita a participante ativo, dono organizador ou admin; publicação
 exige inscrição ativa. O frontend renderiza texto com interpolação Vue, sem HTML
-injetado. Moderação, paginação e notificações estão fora deste fluxo inicial.
+injetado. A moderação posterior está descrita em [administracao.md](administracao.md);
+paginação e notificações continuam fora deste fluxo inicial.
 
 ## Banco e testes
 
-Um banco vazio recebe V1–V9 automaticamente pelo Compose; um volume existente
+Um banco vazio recebe V1–V10 automaticamente pelo Compose; um volume existente
 **não recebe migrações novas automaticamente**. Faça backup, confira
 `versoes_schema` e execute, em ordem, os scripts `db/atualizar-v5.sql` a
-`db/atualizar-v9.sql` que ainda faltarem. Consulte `db/README.md`.
+`db/atualizar-v10.sql` que ainda faltarem. Consulte `db/README.md`.
 
 Verifique com `node --test db/tests/schema.mjs`, `mvn test` e, em `frontend/`,
 `npm run test:run`, `npm exec -- oxlint .`, `npm exec -- eslint .` e
 `npm run build`. Neste Windows, os testes HTTP precisaram de
 `-DargLine=-Djdk.net.unixdomain.tmpdir=C:\Users\marcos.portela\IdeaProjects\events-api\target`;
-o resultado foi 51 testes Java descobertos, sem falhas, 6 condicionais ignorados.
+Os resultados atuais devem ser confirmados pela execução local.
 Os fluxos de SMTP e QR em celular também pedem
 validação manual no ambiente onde serão usados.

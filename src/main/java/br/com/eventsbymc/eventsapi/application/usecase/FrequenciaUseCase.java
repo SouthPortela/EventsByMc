@@ -8,6 +8,7 @@ import br.com.eventsbymc.eventsapi.application.port.out.EventoRepository;
 import br.com.eventsbymc.eventsapi.application.port.out.FrequenciaRepository;
 import br.com.eventsbymc.eventsapi.application.port.out.UsuarioRepository;
 import br.com.eventsbymc.eventsapi.domain.model.Perfil;
+import br.com.eventsbymc.eventsapi.domain.model.EstadoEvento;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,6 +24,8 @@ public final class FrequenciaUseCase implements OperacoesFrequencia {
                 .orElseThrow(() -> new TokenInvalidoException("Sessão inválida.", null));
         var evento = eventos.buscarPorId(frequencia.eventoDaAtividade(atividadeId))
                 .orElseThrow(RecursoNaoEncontradoException::new);
+        if (evento.getEstado() == EstadoEvento.SUSPENSO || evento.getEstado() == EstadoEvento.EXCLUIDO)
+            throw new RecursoNaoEncontradoException();
         if (!usuario.possuiPerfil(Perfil.ADMINISTRADOR)
                 && !(usuario.possuiPerfil(Perfil.ORGANIZADOR) && evento.getOrganizador().getId().equals(responsavelId)))
             throw new AcessoNegadoException();

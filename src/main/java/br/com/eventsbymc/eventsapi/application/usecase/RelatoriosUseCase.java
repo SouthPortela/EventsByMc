@@ -8,6 +8,7 @@ import br.com.eventsbymc.eventsapi.application.port.out.EventoRepository;
 import br.com.eventsbymc.eventsapi.application.port.out.RelatoriosRepository;
 import br.com.eventsbymc.eventsapi.application.port.out.UsuarioRepository;
 import br.com.eventsbymc.eventsapi.domain.model.Perfil;
+import br.com.eventsbymc.eventsapi.domain.model.EstadoEvento;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -28,6 +29,8 @@ public final class RelatoriosUseCase implements ConsultarRelatorios {
         var usuario = usuarios.buscarPorId(usuarioId)
                 .orElseThrow(() -> new TokenInvalidoException("Sessão inválida.", null));
         var evento = eventos.buscarPorId(eventoId).orElseThrow(RecursoNaoEncontradoException::new);
+        if ((evento.getEstado() == EstadoEvento.SUSPENSO || evento.getEstado() == EstadoEvento.EXCLUIDO)
+                && !usuario.possuiPerfil(Perfil.ADMINISTRADOR)) throw new RecursoNaoEncontradoException();
         if (!usuario.possuiPerfil(Perfil.ADMINISTRADOR)
                 && !(usuario.possuiPerfil(Perfil.ORGANIZADOR)
                 && evento.getOrganizador().getId().equals(usuarioId))) {

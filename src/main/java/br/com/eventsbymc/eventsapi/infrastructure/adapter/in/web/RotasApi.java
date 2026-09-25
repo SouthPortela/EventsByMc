@@ -3,12 +3,24 @@ package br.com.eventsbymc.eventsapi.infrastructure.adapter.in.web;
 import br.com.eventsbymc.eventsapi.application.port.in.AutenticarUsuario;
 import br.com.eventsbymc.eventsapi.application.port.in.ConsultarMinhaConta;
 import br.com.eventsbymc.eventsapi.application.port.in.OperacoesEvento;
+import br.com.eventsbymc.eventsapi.application.port.in.AdministrarPlataforma;
 import br.com.eventsbymc.eventsapi.application.usecase.RegistrarUsuarioUseCase;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import static br.com.eventsbymc.eventsapi.infrastructure.adapter.in.web.GestaoEventosHandler.Acao.*;
 
 public final class RotasApi {
     private RotasApi() {}
+
+    public static Router adicionarAdministracao(Router router, AdministrarPlataforma caso, ObjectMapper mapper) {
+        return router
+                .registrar("GET", "/admin/eventos", new AdministracaoHandler(caso, mapper, AdministracaoHandler.Acao.LISTAR_EVENTOS))
+                .registrar("GET", "/admin/eventos/{id}", new AdministracaoHandler(caso, mapper, AdministracaoHandler.Acao.CONSULTAR_EVENTO))
+                .registrar("GET", "/admin/usuarios", new AdministracaoHandler(caso, mapper, AdministracaoHandler.Acao.LISTAR_USUARIOS))
+                .registrar("GET", "/admin/moderacoes", new AdministracaoHandler(caso, mapper, AdministracaoHandler.Acao.LISTAR_MODERACOES))
+                .registrar("POST", "/admin/eventos/{id}/suspensao", new AdministracaoHandler(caso, mapper, AdministracaoHandler.Acao.SUSPENDER))
+                .registrar("POST", "/admin/eventos/{id}/restauracao", new AdministracaoHandler(caso, mapper, AdministracaoHandler.Acao.RESTAURAR))
+                .registrar("DELETE", "/admin/eventos/{id}", new AdministracaoHandler(caso, mapper, AdministracaoHandler.Acao.EXCLUIR));
+    }
 
     public static Router adicionarAvaliacoesAtividade(Router router,
             br.com.eventsbymc.eventsapi.application.port.in.OperacoesAvaliacao caso, ObjectMapper mapper) {

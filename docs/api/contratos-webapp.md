@@ -30,7 +30,7 @@ a migração V4 acrescenta a coluna `categoria` à tabela de eventos.
 | Catálogo | GET /api/eventos | Público; apenas PUBLICADO |
 | Detalhes | GET /api/eventos/{id} | Público; apenas PUBLICADO |
 | Meus eventos | GET /api/usuarios/me/eventos | Organizador/admin; somente eventos próprios |
-| Salvar rascunho | POST /api/eventos | Organizador/admin; categoria opcional para clientes antigos |
+| Salvar rascunho | POST /api/eventos | Organizador; categoria opcional para clientes antigos |
 | Alterar categoria | PATCH /api/eventos/{id}/categoria | Dono organizador ou administrador |
 | Publicar | POST /api/eventos/{id}/publicacao | Dono organizador ou administrador |
 | Encerrar | POST /api/eventos/{id}/encerramento | Dono organizador ou administrador |
@@ -134,7 +134,8 @@ retorna `409`, sem sobrescrever uma alteração concorrente.
 Consultar rascunho/encerrado pelo endpoint público retorna `404`, inclusive para
 o dono. Para acompanhar esses registros, use a lista autenticada de eventos próprios.
 Um administrador pode alterar o estado de qualquer evento, mas sua lista “Meus
-eventos” continua sendo pessoal; o painel administrativo global ainda é demonstrativo.
+eventos” continua sendo pessoal. A visão global e a moderação estão documentadas em
+[administracao.md](administracao.md).
 
 ## Conta, autenticação e erros
 

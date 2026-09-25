@@ -76,7 +76,7 @@ public class Evento {
         }
 
         // Revogar um perfil não torna ilegível um evento já persistido.
-        if (!reconstituindo && !organizador.possuiPerfil(Perfil.ORGANIZADOR) && !organizador.possuiPerfil(Perfil.ADMINISTRADOR)) {
+        if (!reconstituindo && !organizador.possuiPerfil(Perfil.ORGANIZADOR)) {
             throw new IllegalArgumentException(
                     "O usuário precisa possuir o perfil ORGANIZADOR."
             );
@@ -130,9 +130,31 @@ public class Evento {
         estado = EstadoEvento.ENCERRADO;
     }
 
+    public void suspender() {
+        if (estado == EstadoEvento.SUSPENSO || estado == EstadoEvento.EXCLUIDO) {
+            throw new IllegalStateException("Evento indisponível para suspensão.");
+        }
+        estado = EstadoEvento.SUSPENSO;
+    }
+
+    public void restaurarComoRascunho() {
+        if (estado != EstadoEvento.SUSPENSO) {
+            throw new IllegalStateException("Somente eventos suspensos podem ser restaurados.");
+        }
+        estado = EstadoEvento.RASCUNHO;
+    }
+
+    public void excluir() {
+        if (estado == EstadoEvento.EXCLUIDO) {
+            throw new IllegalStateException("Evento já excluído.");
+        }
+        estado = EstadoEvento.EXCLUIDO;
+    }
+
     public void adicionarAtividade(Atividade atividade) {
-        if (estado == EstadoEvento.ENCERRADO) {
-            throw new IllegalStateException("Não é possível alterar um evento encerrado.");
+        if (estado == EstadoEvento.ENCERRADO || estado == EstadoEvento.SUSPENSO
+                || estado == EstadoEvento.EXCLUIDO) {
+            throw new IllegalStateException("Não é possível alterar este evento.");
         }
         validarAtividadeNoPeriodo(atividade);
         programacao.adicionarAtividade(atividade);

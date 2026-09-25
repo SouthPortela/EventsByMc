@@ -20,6 +20,7 @@ public final class CatalogoHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         Object resposta = detalhe ? eventos.consultarPublicado(Router.uuidEvento(exchange)) : eventos.listarPublicados();
+        exchange.getResponseHeaders().set("Cache-Control", "no-store");
         HttpRespostas.enviarJson(exchange, 200, resposta, mapper);
     }
 }

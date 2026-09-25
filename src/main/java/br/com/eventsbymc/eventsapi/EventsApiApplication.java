@@ -19,6 +19,7 @@ public final class EventsApiApplication {
 
         Router router = RotasApi.criar(raiz.registrarUsuarioUseCase, raiz.autenticarUsuario,
                 raiz.consultarMinhaConta, raiz.eventos, raiz.objectMapper);
+        RotasApi.adicionarAdministracao(router, raiz.administracao, raiz.objectMapper);
         RotasApi.adicionarPresenca(router, raiz.presencas, raiz.objectMapper);
         RotasApi.adicionarProgramacao(router, raiz.programacao, raiz.objectMapper);
         RotasApi.adicionarRelatorios(router, raiz.relatorios, raiz.objectMapper);

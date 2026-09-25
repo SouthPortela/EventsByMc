@@ -15,6 +15,9 @@ A V5 modela trilhas, espaços, pessoas/papéis, agenda e regras de inscrição.
 A V6 adiciona questionários, respostas e mensagens; a V7 persiste certificados.
 A V8 configura a política de frequência por atividade e armazena marcações manuais
 auditáveis. A V9 permite questionários gerais e por atividade no mesmo evento.
+A V10 permite suspensão e exclusão lógica de eventos, com auditoria. O arquivo da
+migração começa com `V9z` para ser executado após V9 pela ordem alfabética do
+`docker-entrypoint-initdb.d`; a versão registrada em `versoes_schema` é 10.
 
 | Tabela nova | Responsabilidade |
 |---|---|
@@ -29,6 +32,7 @@ auditáveis. A V9 permite questionários gerais e por atividade no mesmo evento.
 | mensagens_evento | Conversas dos participantes de um evento |
 | certificados | Emissão única e histórico de envio |
 | registros_frequencia | Confirmação manual, entrada e saída por atividade |
+| moderacoes_evento | Administrador, motivo e estados de cada intervenção |
 
 Chaves estrangeiras compostas impedem associar presença, inscrição e chamada de
 eventos diferentes. UNIQUE protege contra duplicidade, inclusive se o navegador
@@ -42,11 +46,11 @@ As regras de unicidade e referência seguem os mecanismos nativos do
 **Nenhum destes scripts foi executado contra o seu banco pelo agente.**
 Confirme a conexão selecionada e faça backup antes de alterar um banco existente.
 
-- Banco vazio: execute `db/inicializar.sql` pelo psql. Ele inclui V1 a V9 em uma
+- Banco vazio: execute `db/inicializar.sql` pelo psql. Ele inclui V1 a V10 em uma
   única transação; não cria contas nem insere senhas ou dados demonstrativos.
 - Banco existente: consulte `SELECT * FROM versoes_schema ORDER BY versao;` e execute
   **somente as versões pendentes**, em ordem, de `db/atualizar-v2.sql` até
-  `db/atualizar-v9.sql`. Por exemplo, um banco em V4 precisa de V5, V6, V7, V8 e V9.
+  `db/atualizar-v10.sql`. Por exemplo, um banco em V9 precisa de V10.
 - Banco parcialmente modificado/manualmente diferente da V1: compare o esquema
   antes. Não use o inicializador para tentar “consertar” esse banco.
 
@@ -65,11 +69,11 @@ psql -X -h localhost -U SEU_USUARIO -d events_dev -W -f db/inicializar.sql
 ```
 
 Para atualizar um banco V1, use os mesmos parâmetros de conexão e execute
-`db/atualizar-v2.sql` até `db/atualizar-v9.sql`, em ordem. A senha é solicitada interativamente; não colocar
+`db/atualizar-v2.sql` até `db/atualizar-v10.sql`, em ordem. A senha é solicitada interativamente; não colocar
 senha no SQL, no frontend ou no histórico do terminal.
 
 Os comandos `\ir` e `\set` são do psql, não do Query Tool do pgAdmin.
-No pgAdmin, para um banco vazio, execute o conteúdo de V1 a V9, nessa ordem, dentro
+No pgAdmin, para um banco vazio, execute o conteúdo de V1 a V10, nessa ordem, dentro
 de `BEGIN;` / `COMMIT;`. Para um banco existente, execute apenas as versões pendentes.
 Se houver erro, use `ROLLBACK;` e investigue; não prossiga executando trechos avulsos.
 
@@ -78,7 +82,7 @@ A V1 foi preservada. A V2 não usa DROP/TRUNCATE e recusa períodos incompletos
 falha e precisa de uma correção de dados previamente revisada.
 Os scripts não são de reaplicação silenciosa: executar uma versão duas vezes gera erro.
 O backend não aplica migrações automaticamente.
-No Docker Compose, o contêiner PostgreSQL executa V1 a V9 quando o volume
+No Docker Compose, o contêiner PostgreSQL executa V1 a V10 quando o volume
 está vazio. Em um volume já inicializado, aplique as versões pendentes manualmente
 após backup. Para um volume Docker que já possui V4, abra
 `docker compose exec postgres-db sh`, entre no
@@ -92,8 +96,9 @@ BEGIN;
 COMMIT;
 ```
 
-Repita com V6, V7, V8 e V9, nessa ordem, cada uma em transação própria; nunca
-reaplique uma versão já registrada. Após atualizar, confirme que o máximo é 9.
+Repita com V6, V7, V8, V9 e V10, nessa ordem, cada uma em transação própria;
+para V10, use `/docker-entrypoint-initdb.d/V9z__V10_moderacao_eventos.sql`.
+Nunca reaplique uma versão já registrada. Após atualizar, confirme que o máximo é 10.
 
 Essa pasta está montada no contêiner pelo Compose. Não use `docker compose down -v`
 para atualizar perfis, pois isso apagaria o banco persistido.
@@ -214,7 +219,7 @@ isso não transforma este mecanismo de frequência em autenticação multifator.
 
 ## Verificação automatizada
 
-Na validação de 24/09/2026: as migrações V1 a V9, casos de uso e o frontend foram
+Na validação de 25/09/2026: as migrações V1 a V10, casos de uso e o frontend foram
 cobertos por testes. Neste Windows, a suíte HTTP precisou do parâmetro de
 diretório temporário do JDK mostrado abaixo; sem ele, o JDK falhava ao abrir
 o loopback antes de iniciar os testes de transporte.
@@ -227,7 +232,7 @@ O Checkstyle não está configurado/disponível no cache Maven desta máquina.
 - Frontend: `npm run test:run`, `npm run build`, Oxlint e ESLint.
 - Java: `mvn test`, com os testes de transporte usando servidor/JWT reais e dublês
   das portas de persistência. Os testes dependentes de banco continuam condicionais.
-- SQL: `db/tests/schema.mjs` testa V1 a V9 em banco vazio, atualização preservando
+- SQL: `db/tests/schema.mjs` testa V1 a V10 em banco vazio, atualização preservando
   registros, unicidade, FKs, períodos, frequência e limite de tentativas. Também
   verifica as consultas reais do adaptador por EXPLAIN, sem executar suas escritas.
 

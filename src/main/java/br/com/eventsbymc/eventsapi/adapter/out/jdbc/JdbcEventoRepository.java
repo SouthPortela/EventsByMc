@@ -7,6 +7,7 @@ import br.com.eventsbymc.eventsapi.domain.model.Evento;
 import br.com.eventsbymc.eventsapi.domain.model.Perfil;
 import br.com.eventsbymc.eventsapi.domain.model.Pessoa;
 import br.com.eventsbymc.eventsapi.domain.model.Usuario;
+import br.com.eventsbymc.eventsapi.domain.model.RegistroModeracaoEvento;
 import br.com.eventsbymc.eventsapi.application.port.out.EventoRepository;
 
 import java.sql.Connection;
@@ -14,6 +15,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -87,7 +89,8 @@ public final class JdbcEventoRepository implements EventoRepository {
     @Override
     public boolean alterarCategoria(UUID id, CategoriaEvento categoria) {
         try (Connection connection = connectionFactory.abrirConexao();
-             PreparedStatement statement = connection.prepareStatement("UPDATE eventos SET categoria = ? WHERE id = ?")) {
+             PreparedStatement statement = connection.prepareStatement(
+                     "UPDATE eventos SET categoria = ? WHERE id = ? AND estado NOT IN ('SUSPENSO', 'EXCLUIDO')")) {
             statement.setString(1, categoria.name());
             statement.setObject(2, id);
             return statement.executeUpdate() == 1;
@@ -109,6 +112,98 @@ public final class JdbcEventoRepository implements EventoRepository {
             return eventos;
         } catch (SQLException exception) {
             throw new IllegalStateException("Não foi possível listar os eventos.", exception);
+        }
+    }
+
+    @Override
+    public boolean moderar(UUID id, EstadoEvento esperado, EstadoEvento destino, UUID administradorId, String motivo) {
+        try (Connection connection = connectionFactory.abrirConexao()) {
+            connection.setAutoCommit(false);
+            try {
+                int alterados;
+                String sql = """
+                        UPDATE eventos SET estado = ?,
+                            titulo = CASE WHEN ? = 'EXCLUIDO' THEN '[Evento removido]' ELSE titulo END,
+                            descricao = CASE WHEN ? = 'EXCLUIDO' THEN NULL ELSE descricao END,
+                            local = CASE WHEN ? = 'EXCLUIDO' THEN NULL ELSE local END
+                        WHERE id = ? AND estado = ?
+                        """;
+                try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                    statement.setString(1, destino.name());
+                    for (int indice = 2; indice <= 4; indice++) statement.setString(indice, destino.name());
+                    statement.setObject(5, id);
+                    statement.setString(6, esperado.name());
+                    alterados = statement.executeUpdate();
+                }
+                if (alterados == 0) { connection.rollback(); return false; }
+                if (destino == EstadoEvento.EXCLUIDO) limparConteudo(connection, id);
+                try (PreparedStatement statement = connection.prepareStatement("""
+                        INSERT INTO moderacoes_evento
+                            (id, evento_id, administrador_id, estado_anterior, estado_novo, motivo)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        """)) {
+                    statement.setObject(1, UUID.randomUUID());
+                    statement.setObject(2, id);
+                    statement.setObject(3, administradorId);
+                    statement.setString(4, esperado.name());
+                    statement.setString(5, destino.name());
+                    statement.setString(6, motivo);
+                    statement.executeUpdate();
+                }
+                connection.commit();
+                return true;
+            } catch (SQLException | RuntimeException exception) {
+                connection.rollback();
+                throw exception;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Não foi possível moderar o evento.", exception);
+        }
+    }
+
+    private void limparConteudo(Connection connection, UUID eventoId) throws SQLException {
+        String[] comandos = {
+                "UPDATE atividades SET titulo = '[Atividade removida]', descricao = NULL, local = NULL WHERE evento_id = ?",
+                "UPDATE trilhas SET nome = 'Trilha removida ' || id::text WHERE evento_id = ?",
+                "UPDATE espacos SET nome = 'Espaço removido ' || id::text WHERE evento_id = ?",
+                "UPDATE pessoas_evento SET nome = 'Pessoa removida ' || id::text, email = NULL WHERE evento_id = ?",
+                "UPDATE questionarios SET titulo = '[Questionário removido]' WHERE evento_id = ?",
+                "UPDATE questoes SET enunciado = '[Questão removida]', opcoes = CASE WHEN tipo = 'ESCOLHA_UNICA' THEN '[\"Removida\",\"Removida\"]'::jsonb ELSE NULL END WHERE questionario_id IN (SELECT id FROM questionarios WHERE evento_id = ?)",
+                "UPDATE respostas_avaliacao SET valor = '[Conteúdo removido]' WHERE questionario_id IN (SELECT id FROM questionarios WHERE evento_id = ?)",
+                "UPDATE mensagens_evento SET mensagem = '[Conteúdo removido]' WHERE evento_id = ?"
+        };
+        for (String comando : comandos) {
+            try (PreparedStatement statement = connection.prepareStatement(comando)) {
+                statement.setObject(1, eventoId);
+                statement.executeUpdate();
+            }
+        }
+    }
+
+    @Override
+    public List<RegistroModeracaoEvento> listarModeracoes() {
+        String sql = """
+                SELECT m.id, m.evento_id, m.administrador_id, u.nome, m.estado_anterior,
+                       m.estado_novo, m.motivo, m.criado_em
+                  FROM moderacoes_evento m JOIN usuarios u ON u.id = m.administrador_id
+                 ORDER BY m.criado_em DESC, m.id DESC
+                """;
+        List<RegistroModeracaoEvento> registros = new ArrayList<>();
+        try (Connection connection = connectionFactory.abrirConexao();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet resultado = statement.executeQuery()) {
+            while (resultado.next()) {
+                Instant criadoEm = resultado.getTimestamp("criado_em").toInstant();
+                registros.add(new RegistroModeracaoEvento(resultado.getObject("id", UUID.class),
+                        resultado.getObject("evento_id", UUID.class),
+                        resultado.getObject("administrador_id", UUID.class), resultado.getString("nome"),
+                        EstadoEvento.valueOf(resultado.getString("estado_anterior")),
+                        EstadoEvento.valueOf(resultado.getString("estado_novo")),
+                        resultado.getString("motivo"), criadoEm));
+            }
+            return registros;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Não foi possível consultar a auditoria.", exception);
         }
     }
 

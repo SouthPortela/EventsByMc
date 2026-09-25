@@ -19,7 +19,7 @@ interface EventoResposta {
   local: string | null
   dataInicio: string | null
   dataFim: string | null
-  estado: 'RASCUNHO' | 'PUBLICADO' | 'ENCERRADO'
+  estado: 'RASCUNHO' | 'PUBLICADO' | 'ENCERRADO' | 'SUSPENSO' | 'EXCLUIDO'
   categoria: CategoriaEvento
   atividades: {
     id: string

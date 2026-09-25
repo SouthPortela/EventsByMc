@@ -35,6 +35,7 @@ public final class CompositionRoot {
     public final ObjectMapper objectMapper;
     public final ConsultarMinhaConta consultarMinhaConta;
     public final OperacoesEvento eventos;
+    public final br.com.eventsbymc.eventsapi.application.port.in.AdministrarPlataforma administracao;
     public final br.com.eventsbymc.eventsapi.application.port.in.OperacoesPresenca presencas;
     public final br.com.eventsbymc.eventsapi.application.port.in.OperacoesProgramacao programacao;
     public final br.com.eventsbymc.eventsapi.application.port.in.ConsultarRelatorios relatorios;
@@ -48,6 +49,8 @@ public final class CompositionRoot {
         this.usuarioRepository = new JdbcUsuarioRepository(jdbcConnectionFactory);
         this.consultarMinhaConta = new ConsultarMinhaContaUseCase(usuarioRepository);
         this.eventos = new EventosUseCase(new JdbcEventoRepository(jdbcConnectionFactory), usuarioRepository);
+        this.administracao = new br.com.eventsbymc.eventsapi.application.usecase.AdministracaoUseCase(
+                new JdbcEventoRepository(jdbcConnectionFactory), usuarioRepository);
         this.presencas = new br.com.eventsbymc.eventsapi.application.usecase.PresencaUseCase(
                 new br.com.eventsbymc.eventsapi.adapter.out.jdbc.JdbcPresencaRepository(jdbcConnectionFactory),
                 usuarioRepository, new JdbcEventoRepository(jdbcConnectionFactory),

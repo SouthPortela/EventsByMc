@@ -132,7 +132,7 @@ const router = createRouter({
     {
       path: '/admin',
       component: DashboardLayout,
-      meta: { minRole: 'ADMINISTRADOR', dashboard: true, apiPendente: true },
+      meta: { minRole: 'ADMINISTRADOR', dashboard: true },
       children: [
         {
           path: '',
@@ -151,6 +151,12 @@ const router = createRouter({
           name: 'admin-events',
           component: () => import('../views/AdminEventsView.vue'),
           meta: { title: 'Eventos da plataforma' },
+        },
+        {
+          path: 'eventos/:id',
+          name: 'admin-event-details',
+          component: () => import('../views/AdminEventDetailView.vue'),
+          meta: { title: 'Supervisão do evento' },
         },
         {
           path: 'auditoria',
@@ -190,6 +196,10 @@ router.beforeEach((to) => {
   }
 
   if (minimo && !possuiNivel(auth.perfil, minimo)) {
+    return { name: 'access-denied', query: { destino: to.fullPath } }
+  }
+
+  if (to.path.startsWith('/organizador') && !auth.perfis.includes('ORGANIZADOR')) {
     return { name: 'access-denied', query: { destino: to.fullPath } }
   }
 

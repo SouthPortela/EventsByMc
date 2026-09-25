@@ -42,6 +42,7 @@ class ApiWebIntegrationTest {
         var router = RotasApi.criar(new RegistrarUsuarioUseCase(usuarios, senha),
                 new AutenticarUsuarioUseCase(usuarios, senha, jwt),
                 new ConsultarMinhaContaUseCase(usuarios), new EventosUseCase(eventos, usuarios), mapper);
+        RotasApi.adicionarAdministracao(router, new AdministracaoUseCase(eventos, usuarios), mapper);
         RotasApi.adicionarPresenca(router, new PresencaUseCase(presencas, usuarios, eventos, new CodigoPresencaSeguro()), mapper);
         servidor = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         servidor.createContext("/", new ManipuladorGlobalDeExcessoes(router, mapper))
@@ -151,6 +152,31 @@ class ApiWebIntegrationTest {
         assertEquals(403, pedir("POST", "/eventos/" + id + "/publicacao", token(outro), null).statusCode());
         dono.removerPerfil(Perfil.ORGANIZADOR);
         assertEquals(403, pedir("POST", "/eventos", token, DADOS).statusCode());
+    }
+    @Test void moderacaoExigeAdminEExclusaoRetiraConteudoSemApagarAuditoria() throws Exception {
+        String id = criar();
+        var admin = RepositoriosEmMemoria.usuario(usuarios, Perfil.ADMINISTRADOR);
+        var participante = RepositoriosEmMemoria.usuario(usuarios, Perfil.PARTICIPANTE);
+        String authAdmin = token(admin);
+        String motivo = "{\"motivo\":\"Conteúdo impróprio identificado.\"}";
+        assertEquals(401, pedir("GET", "/admin/eventos", null, null).statusCode());
+        assertEquals(403, pedir("GET", "/admin/eventos", token(participante), null).statusCode());
+        assertEquals(403, pedir("GET", "/admin/eventos", token, null).statusCode());
+        assertEquals(1, mapper.readTree(pedir("GET", "/admin/eventos", authAdmin, null).body()).size());
+        assertEquals("RASCUNHO", mapper.readTree(pedir("GET", "/admin/eventos/" + id, authAdmin, null).body())
+                .get("evento").get("estado").asText());
+        assertEquals(403, pedir("POST", "/eventos", authAdmin, DADOS).statusCode());
+        assertEquals(403, pedir("DELETE", "/admin/eventos/" + id, token, motivo).statusCode());
+        assertEquals(400, pedir("POST", "/admin/eventos/" + id + "/suspensao", authAdmin,
+                "{\"motivo\":\"curto\"}").statusCode());
+        assertEquals(200, pedir("POST", "/admin/eventos/" + id + "/suspensao", authAdmin, motivo).statusCode());
+        assertEquals(409, pedir("POST", "/eventos/" + id + "/publicacao", token, null).statusCode());
+        assertEquals(200, pedir("POST", "/admin/eventos/" + id + "/restauracao", authAdmin, motivo).statusCode());
+        assertEquals(200, pedir("DELETE", "/admin/eventos/" + id, authAdmin, motivo).statusCode());
+        assertEquals(404, pedir("GET", "/eventos/" + id, null, null).statusCode());
+        assertFalse(pedir("GET", "/admin/eventos/" + id, authAdmin, null).body().contains("Simpósio de teste"));
+        assertEquals(3, mapper.readTree(pedir("GET", "/admin/moderacoes", authAdmin, null).body()).size());
+        assertEquals(0, mapper.readTree(pedir("GET", "/usuarios/me/eventos", token, null).body()).size());
     }
     @Test void categoriaDoEventoVaiDoCadastroAoCatalogoEExigePropriedadeParaEdicao() throws Exception {
         String dados = DADOS.replace("\"local\":", "\"categoria\":\"ACADEMICO\",\"local\":");

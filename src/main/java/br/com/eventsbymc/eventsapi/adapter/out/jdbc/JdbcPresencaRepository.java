@@ -38,7 +38,10 @@ public final class JdbcPresencaRepository implements PresencaRepository {
             var inscricoes = new ArrayList<DadosPresenca.InscricaoResumo>();
             String sqlInscricoes = """
                 SELECT i.id, i.evento_id, i.estado, i.criada_em,
-                       e.titulo, e.inicio, e.fim, e.local, e.estado AS evento_estado
+                       CASE WHEN e.estado = 'SUSPENSO' THEN '[Evento indisponível]' ELSE e.titulo END AS titulo,
+                       e.inicio, e.fim,
+                       CASE WHEN e.estado = 'SUSPENSO' THEN NULL ELSE e.local END AS local,
+                       e.estado AS evento_estado
                   FROM inscricoes i JOIN eventos e ON e.id = i.evento_id
                  WHERE i.usuario_id = ?
                  ORDER BY i.criada_em DESC, i.id
@@ -63,7 +66,7 @@ public final class JdbcPresencaRepository implements PresencaRepository {
                   JOIN eventos e ON e.id = i.evento_id
                   JOIN atividades a ON a.evento_id = i.evento_id
                   LEFT JOIN presencas p ON p.atividade_id = a.id AND p.usuario_id = i.usuario_id
-                 WHERE i.usuario_id = ? AND i.estado = 'ATIVA'
+                 WHERE i.usuario_id = ? AND i.estado = 'ATIVA' AND e.estado = 'PUBLICADO'
                  ORDER BY a.inicio NULLS LAST, a.id
                 """;
             try (var s = c.prepareStatement(sqlAgenda)) {
@@ -205,7 +208,8 @@ public final class JdbcPresencaRepository implements PresencaRepository {
                 s.setObject(1, eventoId);
                 try (var r = s.executeQuery()) {
                     if (!r.next()) throw new RecursoNaoEncontradoException();
-                    if ("ENCERRADO".equals(r.getString(1))) throw new ConflitoOperacaoException("Evento encerrado.");
+                    if (List.of("ENCERRADO", "SUSPENSO", "EXCLUIDO").contains(r.getString(1)))
+                        throw new ConflitoOperacaoException("Evento indisponível.");
                 }
             }
             try (var s = c.prepareStatement("INSERT INTO atividades(id, evento_id, titulo, descricao, inicio, fim, local) VALUES (?, ?, ?, ?, ?, ?, ?)")) {

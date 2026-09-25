@@ -24,6 +24,8 @@ public final class PresencaUseCase implements OperacoesPresenca {
     private Evento gerenciar(UUID usuarioId, UUID eventoId) {
         var usuario = usuario(usuarioId);
         var evento = eventos.buscarPorId(eventoId).orElseThrow(RecursoNaoEncontradoException::new);
+        if (evento.getEstado() == EstadoEvento.SUSPENSO || evento.getEstado() == EstadoEvento.EXCLUIDO)
+            throw new RecursoNaoEncontradoException();
         if (!usuario.possuiPerfil(Perfil.ADMINISTRADOR)
                 && !(usuario.possuiPerfil(Perfil.ORGANIZADOR) && evento.getOrganizador().getId().equals(usuarioId)))
             throw new AcessoNegadoException();

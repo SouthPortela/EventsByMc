@@ -43,11 +43,13 @@ class EventosUseCaseTest {
         assertThrows(AcessoNegadoException.class, () -> caso.criar(dono.getId(), dados()));
         assertThrows(TokenInvalidoException.class, () -> caso.criar(UUID.randomUUID(), dados()));
     }
-    @Test void administradorPodeGerenciarMasParticipanteNaoPodeCriar() {
+    @Test void administradorPodeModerarMasSomenteOrganizadorPodeCriar() {
         var admin = RepositoriosEmMemoria.usuario(usuarios, Perfil.ADMINISTRADOR);
         var participante = RepositoriosEmMemoria.usuario(usuarios, Perfil.PARTICIPANTE);
         var criado = caso.criar(dono.getId(), dados());
         assertEquals(EstadoEvento.PUBLICADO, caso.alterarEstado(admin.getId(), criado.id(), EstadoEvento.PUBLICADO).estado());
+        assertThrows(AcessoNegadoException.class, () -> caso.criar(admin.getId(), dados()));
+        admin.adicionarPerfil(Perfil.ORGANIZADOR);
         assertNotNull(caso.criar(admin.getId(), dados()));
         assertThrows(AcessoNegadoException.class, () -> caso.criar(participante.getId(), dados()));
     }

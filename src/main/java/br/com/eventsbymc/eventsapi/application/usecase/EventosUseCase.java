@@ -36,13 +36,15 @@ public final class EventosUseCase implements OperacoesEvento {
     @Override
     public List<DadosEvento> listarDoOrganizador(UUID usuarioId) {
         var usuario = organizadorAutorizado(usuarioId);
-        return eventos.listar().stream().filter(e -> e.getOrganizador().getId().equals(usuario.getId()))
+        return eventos.listar().stream().filter(e -> e.getOrganizador().getId().equals(usuario.getId())
+                        && e.getEstado() != EstadoEvento.EXCLUIDO)
                 .map(DadosEvento::de).toList();
     }
 
     @Override
     public DadosEvento criar(UUID usuarioId, DadosNovoEvento dados) {
         var organizador = organizadorAutorizado(usuarioId);
+        if (!organizador.possuiPerfil(Perfil.ORGANIZADOR)) throw new AcessoNegadoException();
         if (dados == null) throw new IllegalArgumentException("Informe os dados do evento.");
         String titulo = texto(dados.titulo(), "Título", 5, 200);
         String descricao = texto(dados.descricao(), "Descrição", 20, 10000);
@@ -60,6 +62,9 @@ public final class EventosUseCase implements OperacoesEvento {
         var usuario = organizadorAutorizado(usuarioId);
         if (categoria == null) throw new IllegalArgumentException("Categoria é obrigatória.");
         var evento = eventos.buscarPorId(eventoId).orElseThrow(RecursoNaoEncontradoException::new);
+        if (evento.getEstado() == EstadoEvento.SUSPENSO || evento.getEstado() == EstadoEvento.EXCLUIDO) {
+            throw new ConflitoOperacaoException("Evento sob moderação não pode ser alterado.");
+        }
         if (!evento.getOrganizador().getId().equals(usuarioId) && !usuario.possuiPerfil(Perfil.ADMINISTRADOR)) {
             throw new AcessoNegadoException();
         }

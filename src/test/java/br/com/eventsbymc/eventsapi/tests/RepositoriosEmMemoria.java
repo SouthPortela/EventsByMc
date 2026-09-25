@@ -18,6 +18,7 @@ final class RepositoriosEmMemoria {
     }
     static final class Eventos implements EventoRepository {
         private final Map<UUID, Evento> dados = new HashMap<>();
+        private final List<RegistroModeracaoEvento> moderacoes = new ArrayList<>();
         boolean conflito;
         private Evento copiar(Evento e) {
             return Evento.reconstituir(e.getId(), e.getTitulo(), e.getDescricao(), e.getOrganizador(),
@@ -27,6 +28,23 @@ final class RepositoriosEmMemoria {
         public Optional<Evento> buscarPorId(UUID id) { return Optional.ofNullable(dados.get(id)).map(this::copiar); }
         public List<Evento> listar() { return dados.values().stream().map(this::copiar).toList(); }
         public void removerPorId(UUID id) { dados.remove(id); }
+        public List<RegistroModeracaoEvento> listarModeracoes() { return List.copyOf(moderacoes); }
+        public synchronized boolean moderar(UUID id, EstadoEvento esperado, EstadoEvento destino,
+                                            UUID administradorId, String motivo) {
+            Evento evento = dados.get(id);
+            if (conflito || evento == null || evento.getEstado() != esperado) return false;
+            if (destino == EstadoEvento.SUSPENSO) evento.suspender();
+            else if (destino == EstadoEvento.RASCUNHO) evento.restaurarComoRascunho();
+            else evento.excluir();
+            if (destino == EstadoEvento.EXCLUIDO) {
+                evento = Evento.reconstituir(id, "[Evento removido]", null, evento.getOrganizador(),
+                        evento.getInicio(), evento.getFim(), null, evento.getCategoria(), destino);
+                dados.put(id, evento);
+            }
+            moderacoes.add(new RegistroModeracaoEvento(UUID.randomUUID(), id, administradorId,
+                    "Administrador", esperado, destino, motivo, java.time.Instant.now()));
+            return true;
+        }
         public synchronized boolean alterarEstado(UUID id, EstadoEvento esperado, EstadoEvento destino) {
             Evento e = dados.get(id);
             if (conflito || e == null || e.getEstado() != esperado) return false;

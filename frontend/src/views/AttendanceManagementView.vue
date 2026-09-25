@@ -61,7 +61,7 @@ function falha(e: unknown): string {
 async function carregar(): Promise<void> {
   erro.value = ''
   try {
-    eventos.value = (await listarMeusEventos()).filter((e) => e.estado !== 'ENCERRADO')
+    eventos.value = (await listarMeusEventos()).filter((e) => e.estado === 'RASCUNHO' || e.estado === 'PUBLICADO')
   } catch (e) {
     erro.value = falha(e)
   }

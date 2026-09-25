@@ -19,8 +19,17 @@ const itensParticipante: NavItem[] = [
   { label: 'Minha agenda', to: '/participante/agenda', icon: 'calendar' },
   { label: 'Minha conta', to: '/participante/conta', icon: 'user' },
 ]
+const itensOrganizador: NavItem[] = [
+  { label: 'Visão geral', to: '/organizador', icon: 'dashboard' },
+  { label: 'Criar evento', to: '/organizador/eventos/novo', icon: 'plus' },
+  { label: 'Inscrições', to: '/organizador/inscricoes', icon: 'users' },
+  { label: 'Frequência', to: '/organizador/frequencia', icon: 'check' },
+  { label: 'Relatórios', to: '/organizador/relatorios', icon: 'report' },
+  { label: 'Minha participação', to: '/participante', icon: 'ticket' },
+]
 const itens = computed<NavItem[]>(() => {
   if (route.path.startsWith('/participante')) return itensParticipante
+  if (route.path.startsWith('/organizador')) return itensOrganizador
   if (auth.perfil === 'ADMINISTRADOR')
     return [
       { label: 'Visão geral', to: '/admin', icon: 'dashboard' },
@@ -28,16 +37,11 @@ const itens = computed<NavItem[]>(() => {
       { label: 'Eventos', to: '/admin/eventos', icon: 'calendar' },
       { label: 'Auditoria', to: '/admin/auditoria', icon: 'shield' },
       { label: 'Minha participação', to: '/participante', icon: 'ticket' },
+      ...(auth.perfis.includes('ORGANIZADOR')
+        ? [{ label: 'Meus eventos', to: '/organizador', icon: 'briefcase' as const }]
+        : []),
     ]
-  if (auth.perfil === 'ORGANIZADOR')
-    return [
-      { label: 'Visão geral', to: '/organizador', icon: 'dashboard' },
-      { label: 'Criar evento', to: '/organizador/eventos/novo', icon: 'plus' },
-      { label: 'Inscrições', to: '/organizador/inscricoes', icon: 'users' },
-      { label: 'Frequência', to: '/organizador/frequencia', icon: 'check' },
-      { label: 'Relatórios', to: '/organizador/relatorios', icon: 'report' },
-      { label: 'Minha participação', to: '/participante', icon: 'ticket' },
-    ]
+  if (auth.perfil === 'ORGANIZADOR') return itensOrganizador
   return itensParticipante
 })
 </script>
@@ -68,9 +72,6 @@ const itens = computed<NavItem[]>(() => {
         </nav>
       </aside>
       <div class="col-lg-9 col-xl-10 bg-light min-vh-100">
-        <div v-if="route.meta.apiPendente" class="alert alert-warning m-4 mb-0" role="status">
-          Esta tela ainda é demonstrativa. Os dados e ações abaixo não estão conectados à API.
-        </div>
         <RouterView />
       </div>
     </div>
