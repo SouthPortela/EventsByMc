@@ -9,3 +9,12 @@ docs/
 *.md
 .idea/
 .vscode/
+
+# Dependências, distribuição e configurações locais
+node_modules/
+release/
+desktop/
+.env.*
+*.bak
+*.tmp
+*.log

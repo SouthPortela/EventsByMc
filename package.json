@@ -20,7 +20,9 @@
     "appId": "br.com.eventsbymc.desktop",
     "productName": "EventsByMc",
     "asar": true,
-    "directories": { "output": "release" },
+    "directories": {
+      "output": "release"
+    },
     "files": [
       "desktop/main.cjs",
       "desktop/config.cjs",
@@ -29,7 +31,9 @@
       "desktop/renderer/**/*",
       "package.json"
     ],
-    "win": { "target": "nsis" },
+    "win": {
+      "target": "nsis"
+    },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
@@ -38,11 +42,7 @@
       "createStartMenuShortcut": true
     }
   },
-  "dependencies": {
-    "bootstrap": "^5.3.8"
-  },
   "devDependencies": {
-    "concurrently": "^10.0.7",
     "electron": "^45.5.0",
     "electron-builder": "^26.18.0",
     "wait-on": "^9.5.1"

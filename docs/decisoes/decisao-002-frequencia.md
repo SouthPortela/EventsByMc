@@ -30,8 +30,10 @@ do banco no instante da emissão.
 - Uma foto do código pode ser compartilhada durante a validade. Supervisão continua
   necessária; não se promete prova técnica de presença física.
 
-Entrada/saída, cálculo de percentual, correção manual auditada por organizador,
-relatórios e seleção/reserva de atividades ficam para etapas seguintes.
+A evolução entregue inclui entrada/saída, cálculo de permanência, confirmação manual
+auditável, relatórios e seleção de agenda com vagas e conflitos. Consulte os
+[contratos atuais](../api/requisitos-funcionais-webapp.md). Correção/exclusão de
+marcações existentes não deve ser confundida com o lançamento manual implementado.
 
 Detalhes operacionais: [banco e QR](../../db/README.md).
 Contratos: [API de presença](../api/presenca.md).

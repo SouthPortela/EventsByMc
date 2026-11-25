@@ -1,5 +1,20 @@
 # Backlog — Events by MC
 
+## Acompanhamento atual
+
+- [x] Estrutura Java 21, domínio, casos de uso e adaptadores HTTP/JDBC.
+- [x] Cadastro/login, eventos, programação, inscrições e agenda.
+- [x] Frequência, avaliações, relatórios e certificados.
+- [x] Administração real com perfis, bloqueios e auditoria (schema 10).
+- [x] Interface compartilhada entre web e desktop Windows.
+- [ ] Upload de imagens e edição de conta.
+- [ ] Edição geral/exclusão de eventos e atividades.
+- [ ] Moderação/paginação de mensagens e envio em massa.
+- [ ] Sincronização offline e atualização automática do desktop.
+- [ ] Homologação integrada no ambiente de entrega: celular, SMTP e instalador.
+
+As marcações abaixo são o registro histórico da Semana 1, não o status atual.
+
 ## Semana 1 — Domínio, responsabilidades e backlog
 
 ### Objetivo da semana

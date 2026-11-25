@@ -123,4 +123,6 @@ isolamento de arquivos, destino da API, JWT, downloads, erros e redirecionamento
 Antes de distribuir, valide com uma API de desenvolvimento: login, perfis,
 criacao/publicacao de evento no desktop aparecendo no site, QR aberto pelo celular,
 presenca visivel nos relatorios, downloads PDF/CSV, expiracao de sessao e perda de rede.
-As telas administrativas demonstrativas existentes continuam demonstrativas.
+As telas administrativas consultam a API real: usuários/perfis, visão global de eventos,
+bloqueio e auditoria. O banco deve estar na versão lógica 10; veja
+[administração](../docs/api/administracao.md).

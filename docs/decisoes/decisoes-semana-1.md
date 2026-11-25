@@ -1,5 +1,8 @@
 # Decisões de Modelagem — Semana 1
 
+Registro histórico da modelagem inicial. Para o estado implementado, consulte
+[Decisão 001](decisao-001-modelagem.md) e o [modelo atual](../dominio/modelo-dominio.md).
+
 ## Projeto
 
 **Events by MC — Plataforma de Gestão de Eventos**
@@ -155,3 +158,4 @@ Exemplo:
 
 ```java
 evento.publicar();
+```
