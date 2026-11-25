@@ -76,7 +76,10 @@ public final class ProgramacaoUseCase implements OperacoesProgramacao {
                     && !politica.inscricoesFim().isAfter(politica.inscricoesInicio())) {
             throw new IllegalArgumentException("Política do evento inválida.");
         }
-        return programacao.atualizarPolitica(eventoId, politica);
+        var evento = eventos.buscarPorId(eventoId).orElseThrow(RecursoNaoEncontradoException::new);
+        if (evento.getEstado() == EstadoEvento.ENCERRADO && programacao.consultarPolitica(eventoId).frequenciaMinimaPercentual() != politica.frequenciaMinimaPercentual())
+            throw new ConflitoOperacaoException("A frequência mínima de um evento encerrado não pode ser alterada.");
+        return programacao.atualizarPolitica(eventoId, politica, usuarioId);
     }
 
     public DadosProgramacao.Trilha criarTrilha(UUID usuarioId, UUID eventoId, DadosProgramacao.NovaTrilha dados) {
@@ -162,6 +165,17 @@ public final class ProgramacaoUseCase implements OperacoesProgramacao {
                 dados.trilhaId(), dados.espacoId(), tipo,
                 dados.presencaObrigatoria() == null || dados.presencaObrigatoria(),
                 politica, permanencia);
+        String nomeEspaco = local;
+        if (dados.espacoId() != null) {
+            nomeEspaco = programacao.listarEspacos(eventoId).stream().filter(e -> e.id().equals(dados.espacoId()))
+                    .findFirst().orElseThrow(RecursoNaoEncontradoException::new).nome();
+        }
+        var ocupacao = new br.com.eventsbymc.eventsapi.domain.model.OcupacaoEspaco(dados.espacoId(), nomeEspaco, dados.dataInicio(), dados.dataFim());
+        for (var existente : programacao.listarAtividades(eventoId, null)) {
+            var outra = new br.com.eventsbymc.eventsapi.domain.model.OcupacaoEspaco(existente.espacoId(),
+                    existente.espaco() == null ? existente.local() : existente.espaco(), existente.dataInicio(), existente.dataFim());
+            if (ocupacao.conflitaCom(outra)) throw new ConflitoOperacaoException("O espaço já está ocupado nesse horário.");
+        }
         return programacao.criarAtividade(eventoId, validos);
     }
 

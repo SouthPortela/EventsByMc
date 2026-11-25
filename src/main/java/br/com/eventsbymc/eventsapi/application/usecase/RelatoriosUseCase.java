@@ -35,6 +35,9 @@ public final class RelatoriosUseCase implements ConsultarRelatorios {
         }
     }
 
+    public List<DadosRelatorios.Atividade> porAtividade(UUID usuarioId, UUID eventoId) {
+        gerenciar(usuarioId, eventoId); return relatorios.porAtividade(eventoId);
+    }
     public List<DadosRelatorios.Inscrito> inscritos(UUID usuarioId, UUID eventoId) {
         gerenciar(usuarioId, eventoId);
         return relatorios.inscritos(eventoId);

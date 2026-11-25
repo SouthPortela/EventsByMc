@@ -41,11 +41,14 @@ O backend fica na raiz do repositório; não existe uma pasta backend separada.
 
 ## Funcionalidades atuais
 
+- Edição de cadastro e eventos; conflitos de espaço/horário, retificações manuais
+  com histórico e relatórios detalhados por atividade (schema 11).
 - Cadastro como participante ou organizador, login e consulta da própria conta.
 - Catálogo, criação de eventos, categoria, publicação e encerramento.
 - Programação com trilhas, espaços, pessoas, papéis e capacidade por atividade.
 - Inscrições com janela, limite e cancelamento; agenda com vagas e conflitos.
-- QR/código temporário, confirmação manual, entrada/saída e permanência mínima.
+- QR/código temporário, confirmação manual, entrada/saída e permanência mínima;
+  [acesso ao QR pelo celular na rede local](docs/api/presenca-rede.md).
 - Questionários gerais ou por atividade, respostas e resultados.
 - Frequência individual, relatórios JSON/CSV/PDF e certificados PDF.
 - Envio individual de certificado por SMTP quando configurado.
@@ -66,7 +69,7 @@ as credenciais e o segredo JWT localmente; não versione esses valores.
 O site usa a porta WEB_PORT (80 por padrão). Java e PostgreSQL têm portas
 publicadas somente em loopback. O frontend Nginx encaminha /api para o Java.
 
-Banco vazio recebe as migrações até a versão lógica 10. Volume existente exige
+Banco vazio recebe as migrações até a versão lógica 11. Volume existente exige
 atualização manual: siga [db/README.md](db/README.md). Não remova o volume para migrar.
 
 ## Executar Java sem Docker
@@ -136,6 +139,7 @@ verificações aprovadas e limitações do ambiente.
 - [Inscrições e presença](docs/api/presenca.md)
 - [Programação, agenda, avaliações e certificados](docs/api/requisitos-funcionais-webapp.md)
 - [Administração](docs/api/administracao.md)
+- [Edição e histórico — migração 11](docs/api/edicao-historico.md)
 - [Modelo de domínio](docs/dominio/modelo-dominio.md)
 - [Responsabilidades](docs/dominio/mapa-responsabilidades.md)
 - [Backlog](docs/backlog/backlog.md)
@@ -147,8 +151,8 @@ registram o escopo acadêmico; não são uma declaração de que todo requisito 
 
 ## Limitações e manutenção
 
-Continuam fora da implementação: upload/persistência de imagens, edição de conta,
-edição geral/exclusão de eventos e atividades, moderação/paginação de mensagens,
+Continuam fora da implementação: upload/persistência de imagens, exclusão de eventos e atividades,
+edição geral de atividades, moderação/paginação de mensagens,
 envio em massa de certificados e sincronização offline. Categoria, políticas e
 metadados de programação possuem operações próprias documentadas.
 

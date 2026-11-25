@@ -53,3 +53,10 @@ INSUFICIENTE. Não existe coluna de conclusão no cadastro do usuário.
 Referências: [responsabilidades](mapa-responsabilidades.md),
 [modelagem](../decisoes/decisao-001-modelagem.md) e
 [contratos](../api/requisitos-funcionais-webapp.md).
+
+## Evolução da frequência e histórico
+
+OcupacaoEspaco representa o conflito de intervalos de uma sala. A view de frequência
+efetiva considera os registros originais e o último ajuste justificado. Eventos
+encerrados preservam dados, programação e percentual mínimo; retificações são
+novos fatos auditáveis, sem apagar o passado. Veja os [contratos](../api/edicao-historico.md).

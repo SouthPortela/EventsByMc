@@ -55,6 +55,7 @@ class NovosRequisitosUseCaseTest {
     @Test void relatóriosExigemPropriedadeDoEvento() {
         var evento = evento();
         var repo = new RelatoriosRepository() {
+            public List<DadosRelatorios.Atividade> porAtividade(UUID id) { return List.of(); }
             public List<DadosRelatorios.Inscrito> inscritos(UUID id) { return List.of(); }
             public List<DadosRelatorios.Frequencia> frequencias(UUID id) { return List.of(); }
             public DadosRelatorios.Frequencia frequenciaDoParticipante(UUID usuario, UUID id) { return new DadosRelatorios.Frequencia(usuario, "Teste", "teste@example.test", 1, 1, 100, 75, "APROVADO", true); }
@@ -86,6 +87,7 @@ class NovosRequisitosUseCaseTest {
             public void marcarEnviado(UUID id) {}
         };
         var frequencias = new RelatoriosRepository() {
+            public List<DadosRelatorios.Atividade> porAtividade(UUID id) { return List.of(); }
             public List<DadosRelatorios.Inscrito> inscritos(UUID id) { return List.of(); }
             public List<DadosRelatorios.Frequencia> frequencias(UUID id) { return List.of(); }
             public DadosRelatorios.Frequencia frequenciaDoParticipante(UUID usuario, UUID id) { return new DadosRelatorios.Frequencia(usuario, "Teste", "teste@example.test", 1, 0, 0, 75, "INSUFICIENTE", false); }
@@ -108,6 +110,8 @@ class NovosRequisitosUseCaseTest {
         var evento = evento();
         UUID atividadeId = UUID.randomUUID();
         var repo = new FrequenciaRepository() {
+            public DadosFrequencia.Ajuste ajustar(UUID id, UUID responsavel, DadosFrequencia.NovoAjuste dados) { throw new UnsupportedOperationException(); }
+            public List<DadosFrequencia.Ajuste> ajustes(UUID id) { return List.of(); }
             public UUID eventoDaAtividade(UUID id) { return evento.getId(); }
             public DadosFrequencia.Registro registrar(UUID id, UUID usuario, UUID responsavel, String marcacao) {
                 return new DadosFrequencia.Registro(UUID.randomUUID(), id, usuario, marcacao, Instant.now(), responsavel);

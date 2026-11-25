@@ -8,6 +8,11 @@ import java.util.*;
 final class RepositoriosEmMemoria {
     static final class Usuarios implements UsuarioRepository {
         private final Map<UUID, Usuario> dados = new HashMap<>();
+        public void atualizarDadosBasicos(UUID id, Pessoa pessoa) {
+            if (dados.values().stream().anyMatch(u -> !u.getId().equals(id) && u.getPessoa().getEmail().equals(pessoa.getEmail())))
+                throw new br.com.eventsbymc.eventsapi.domain.model.exception.EmailJaCadastradoException("informado");
+            dados.get(id).alterarPessoa(pessoa);
+        }
         public Usuario salvar(Usuario usuario) { dados.put(usuario.getId(), usuario); return usuario; }
         public Optional<Usuario> buscarPorId(UUID id) { return Optional.ofNullable(dados.get(id)); }
         public Optional<Usuario> buscarPorEmail(String email) {
@@ -18,6 +23,8 @@ final class RepositoriosEmMemoria {
     }
     static final class Eventos implements EventoRepository {
         private final Map<UUID, Evento> dados = new HashMap<>();
+        public boolean atualizarDados(Evento evento, UUID responsavelId) { if (conflito) return false; salvar(evento); return true; }
+        public java.util.List<br.com.eventsbymc.eventsapi.application.usecase.DadosHistoricoEvento> historico(UUID id) { return List.of(); }
         boolean conflito;
         private Evento copiar(Evento e) {
             return Evento.reconstituirBloqueio(Evento.reconstituir(e.getId(), e.getTitulo(), e.getDescricao(), e.getOrganizador(),

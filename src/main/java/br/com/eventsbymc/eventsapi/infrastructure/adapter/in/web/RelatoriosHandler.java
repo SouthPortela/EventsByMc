@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 public final class RelatoriosHandler implements HttpHandler {
-    public enum Acao { INSCRITOS, FREQUENCIA, MINHA_FREQUENCIA, INSCRITOS_CSV, FREQUENCIA_CSV, INSCRITOS_PDF, FREQUENCIA_PDF }
+    public enum Acao { ATIVIDADES, ATIVIDADES_CSV, INSCRITOS, FREQUENCIA, MINHA_FREQUENCIA, INSCRITOS_CSV, FREQUENCIA_CSV, INSCRITOS_PDF, FREQUENCIA_PDF }
     private final ConsultarRelatorios caso;
     private final ObjectMapper mapper;
     private final Acao acao;
@@ -33,6 +33,8 @@ public final class RelatoriosHandler implements HttpHandler {
         UUID eventoId = Router.uuidEvento(exchange);
         exchange.getResponseHeaders().set("Cache-Control", "no-store");
         switch (acao) {
+            case ATIVIDADES -> HttpRespostas.enviarJson(exchange,200,caso.porAtividade(usuario(),eventoId),mapper);
+            case ATIVIDADES_CSV -> enviarCsv(exchange,"atividades.csv",atividadesCsv(caso.porAtividade(usuario(),eventoId)));
             case INSCRITOS -> HttpRespostas.enviarJson(exchange, 200,
                     caso.inscritos(usuario(), eventoId), mapper);
             case FREQUENCIA -> HttpRespostas.enviarJson(exchange, 200,
@@ -53,10 +55,19 @@ public final class RelatoriosHandler implements HttpHandler {
 
     private static String celula(Object valor) {
         String texto = valor == null ? "" : valor.toString();
-        if (!texto.isEmpty() && "=+-@".indexOf(texto.charAt(0)) >= 0) texto = "'" + texto;
+        if (!texto.stripLeading().isEmpty() && "=+-@".indexOf(texto.stripLeading().charAt(0)) >= 0) texto = "'" + texto;
         return "\"" + texto.replace("\"", "\"\"").replace('\r', ' ').replace('\n', ' ') + "\"";
     }
 
+    private static String atividadesCsv(List<DadosRelatorios.Atividade> linhas) {
+        var csv = new StringBuilder("atividade_id;atividade;usuario_id;nome;email;inscricao;reservada;confirmada;politica;entrada;saida;origem;motivo;responsavel\r\n");
+        for (var a : linhas) {
+            csv.append(java.util.stream.Stream.of(a.atividadeId(),a.atividadeTitulo(),a.usuarioId(),a.nome(),a.email(),
+                a.inscricaoEstado(),a.reservada(),a.confirmada(),a.politicaFrequencia(),a.entradaEm(),a.saidaEm(),a.origem(),a.motivo(),a.responsavelId())
+                .map(RelatoriosHandler::celula).collect(java.util.stream.Collectors.joining(";"))).append("\r\n");
+        }
+        return csv.toString();
+    }
     private static String inscritosCsv(List<DadosRelatorios.Inscrito> inscritos) {
         StringBuilder csv = new StringBuilder("usuario_id;nome;email;estado;inscrita_em\r\n");
         for (var i : inscritos) csv.append(celula(i.usuarioId())).append(';')

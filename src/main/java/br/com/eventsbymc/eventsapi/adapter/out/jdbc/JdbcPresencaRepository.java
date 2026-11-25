@@ -24,6 +24,7 @@ public final class JdbcPresencaRepository implements PresencaRepository {
                 throw e;
             }
         } catch (SQLException e) {
+            if ("23514".equals(e.getSQLState())) throw new ConflitoOperacaoException("Espaço ocupado, período incompatível ou evento consolidado. Revise a programação.");
             if ("23505".equals(e.getSQLState())) throw new ConflitoOperacaoException("Registro concorrente. Atualize e tente novamente.");
             throw new IllegalStateException("Não foi possível concluir a operação no banco.", e);
         }
@@ -62,7 +63,7 @@ public final class JdbcPresencaRepository implements PresencaRepository {
                   FROM inscricoes i
                   JOIN eventos e ON e.id = i.evento_id
                   JOIN atividades a ON a.evento_id = i.evento_id
-                  LEFT JOIN presencas p ON p.atividade_id = a.id AND p.usuario_id = i.usuario_id
+                  LEFT JOIN frequencias_efetivas p ON p.atividade_id = a.id AND p.usuario_id = i.usuario_id AND p.confirmada
                  WHERE i.usuario_id = ? AND i.estado = 'ATIVA'
                  ORDER BY a.inicio NULLS LAST, a.id
                 """;
@@ -81,7 +82,7 @@ public final class JdbcPresencaRepository implements PresencaRepository {
                 }
             }
             long totalPresencas;
-            try (var s = c.prepareStatement("SELECT COUNT(*) FROM presencas WHERE usuario_id = ?")) {
+            try (var s = c.prepareStatement("SELECT COUNT(*) FROM frequencias_efetivas WHERE usuario_id = ? AND confirmada")) {
                 s.setObject(1, usuarioId);
                 try (var r = s.executeQuery()) { r.next(); totalPresencas = r.getLong(1); }
             }

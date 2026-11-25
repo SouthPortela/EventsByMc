@@ -49,3 +49,16 @@ export function baixarInscritosPdf(eventoId: string): Promise<void> {
 export function baixarFrequenciaPdf(eventoId: string): Promise<void> {
   return apiDownload(`${base(eventoId)}/frequencia.pdf`, 'frequencia.pdf')
 }
+
+export interface RelatorioAtividade {
+  atividadeId: string; atividadeTitulo: string; usuarioId: string; nome: string; email: string
+  inscricaoEstado: 'ATIVA' | 'CANCELADA'; reservada: boolean; confirmada: boolean; politicaFrequencia: string
+  registradaEm: string | null; entradaEm: string | null; saidaEm: string | null
+  origem: string | null; motivo: string | null; responsavelId: string | null
+}
+export function listarRelatorioAtividades(eventoId: string): Promise<RelatorioAtividade[]> {
+  return apiRequest(base(eventoId) + '/atividades', { autenticada: true })
+}
+export function baixarRelatorioAtividades(eventoId: string): Promise<void> {
+  return apiDownload(base(eventoId) + '/atividades.csv', 'atividades.csv')
+}

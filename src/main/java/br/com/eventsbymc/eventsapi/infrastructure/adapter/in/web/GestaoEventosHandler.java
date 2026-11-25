@@ -14,7 +14,7 @@ import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 
 public final class GestaoEventosHandler implements HttpHandler {
-    public enum Acao { LISTAR, CRIAR, PUBLICAR, ENCERRAR, ALTERAR_CATEGORIA }
+    public enum Acao { HISTORICO, LISTAR, CRIAR, CONSULTAR_GESTAO, EDITAR, PUBLICAR, ENCERRAR, ALTERAR_CATEGORIA }
     public record DadosCategoria(CategoriaEvento categoria) {}
     private final OperacoesEvento eventos;
     private final ObjectMapper mapper;
@@ -32,6 +32,9 @@ public final class GestaoEventosHandler implements HttpHandler {
         var usuarioId = ContextoAutenticacao.obter()
                 .orElseThrow(() -> new TokenInvalidoException("Sessão inválida.", null)).usuarioId();
         Object resultado = switch (acao) {
+            case CONSULTAR_GESTAO -> eventos.consultarGestao(usuarioId, Router.uuidEvento(exchange));
+            case EDITAR -> eventos.editar(usuarioId, Router.uuidEvento(exchange), HttpRespostas.lerJson(exchange, DadosNovoEvento.class, mapper));
+            case HISTORICO -> eventos.historico(usuarioId, Router.uuidEvento(exchange));
             case LISTAR -> eventos.listarDoOrganizador(usuarioId);
             case CRIAR -> eventos.criar(usuarioId, HttpRespostas.lerJson(exchange, DadosNovoEvento.class, mapper));
             case PUBLICAR -> eventos.alterarEstado(usuarioId, Router.uuidEvento(exchange), EstadoEvento.PUBLICADO);

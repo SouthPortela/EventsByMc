@@ -18,3 +18,17 @@ export function registrarFrequencia(atividadeId: string, usuarioId: string,
     headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usuarioId, marcacao }),
   })
 }
+
+export interface AjusteFrequencia {
+  id: string; atividadeId: string; usuarioId: string; confirmada: boolean
+  motivo: string; registradaEm: string; responsavelId: string
+}
+export interface NovoAjusteFrequencia { id: string; usuarioId: string; confirmada: boolean; motivo: string }
+export function listarAjustes(atividadeId: string): Promise<AjusteFrequencia[]> {
+  return apiRequest('/atividades/' + encodeURIComponent(atividadeId) + '/frequencia/ajustes', { autenticada: true })
+}
+export function ajustarFrequencia(atividadeId: string, dados: NovoAjusteFrequencia): Promise<AjusteFrequencia> {
+  return apiRequest('/atividades/' + encodeURIComponent(atividadeId) + '/frequencia/ajustes', {
+    method: 'POST', autenticada: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados),
+  })
+}

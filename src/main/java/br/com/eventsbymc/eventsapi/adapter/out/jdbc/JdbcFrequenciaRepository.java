@@ -66,6 +66,46 @@ public final class JdbcFrequenciaRepository implements FrequenciaRepository {
             }
         } catch (SQLException e) { throw erro(e); }
     }
+    private static DadosFrequencia.Ajuste mapearAjuste(ResultSet r) throws SQLException {
+        return new DadosFrequencia.Ajuste(r.getObject("id", UUID.class), r.getObject("atividade_id", UUID.class),
+                r.getObject("usuario_id", UUID.class), r.getBoolean("confirmada"), r.getString("motivo"),
+                r.getTimestamp("registrada_em").toInstant(), r.getObject("responsavel_id", UUID.class));
+    }
+    public DadosFrequencia.Ajuste ajustar(UUID atividadeId, UUID responsavelId, DadosFrequencia.NovoAjuste dados) {
+        try (var c = conexoes.abrirConexao()) {
+            c.setAutoCommit(false);
+            try {
+                var contexto = contexto(c, atividadeId, dados.usuarioId());
+                if (!"ATIVA".equals(contexto.inscricaoEstado()) || !List.of("PUBLICADO", "ENCERRADO").contains(contexto.eventoEstado()))
+                    throw new ConflitoOperacaoException("Ajuste exige inscrição ativa e evento publicado ou encerrado.");
+                try (var s = c.prepareStatement("INSERT INTO ajustes_frequencia(id,atividade_id,evento_id,usuario_id,inscricao_id,confirmada,motivo,responsavel_id) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT (id) DO NOTHING")) {
+                    s.setObject(1, dados.id()); s.setObject(2, atividadeId); s.setObject(3, contexto.eventoId());
+                    s.setObject(4, dados.usuarioId()); s.setObject(5, contexto.inscricaoId());
+                    s.setBoolean(6, dados.confirmada()); s.setString(7, dados.motivo()); s.setObject(8, responsavelId); s.executeUpdate();
+                }
+                try (var s = c.prepareStatement("SELECT * FROM ajustes_frequencia WHERE id=?")) {
+                    s.setObject(1, dados.id());
+                    try (var row = s.executeQuery()) {
+                        if (!row.next()) throw new ConflitoOperacaoException("Ajuste indisponível.");
+                        var ajuste = mapearAjuste(row);
+                        if (!ajuste.atividadeId().equals(atividadeId) || !ajuste.usuarioId().equals(dados.usuarioId())
+                                || ajuste.confirmada() != dados.confirmada() || !ajuste.motivo().equals(dados.motivo())
+                                || !ajuste.responsavelId().equals(responsavelId))
+                            throw new ConflitoOperacaoException("Identificador de solicitação já utilizado.");
+                        c.commit(); return ajuste;
+                    }
+                }
+            } catch (SQLException | RuntimeException e) { c.rollback(); if (e instanceof SQLException sql) throw erro(sql); throw e; }
+        } catch (SQLException e) { throw erro(e); }
+    }
+    public List<DadosFrequencia.Ajuste> ajustes(UUID atividadeId) {
+        var lista = new ArrayList<DadosFrequencia.Ajuste>();
+        try (var c = conexoes.abrirConexao(); var s = c.prepareStatement("SELECT * FROM ajustes_frequencia WHERE atividade_id=? ORDER BY ordem DESC")) {
+            s.setObject(1, atividadeId);
+            try (var rows = s.executeQuery()) { while (rows.next()) lista.add(mapearAjuste(rows)); }
+            return List.copyOf(lista);
+        } catch (SQLException e) { throw erro(e); }
+    }
     private record Contexto(UUID eventoId, UUID inscricaoId, String inscricaoEstado,
                             String eventoEstado, String politica, LocalDateTime inicio, LocalDateTime fim) {}
     private static Contexto contexto(Connection c, UUID atividadeId, UUID usuarioId) throws SQLException {

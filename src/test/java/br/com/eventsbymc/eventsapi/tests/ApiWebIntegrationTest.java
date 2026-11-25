@@ -42,6 +42,7 @@ class ApiWebIntegrationTest {
         var router = RotasApi.criar(new RegistrarUsuarioUseCase(usuarios, senha),
                 new AutenticarUsuarioUseCase(usuarios, senha, jwt),
                 new ConsultarMinhaContaUseCase(usuarios), new EventosUseCase(eventos, usuarios), mapper);
+        router.registrar("PUT", "/usuarios/me", new AtualizarContaHandler(new AtualizarMinhaContaUseCase(usuarios), mapper));
         RotasApi.adicionarPresenca(router, new PresencaUseCase(presencas, usuarios, eventos, new CodigoPresencaSeguro()), mapper);
         servidor = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         servidor.createContext("/", new ManipuladorGlobalDeExcessoes(router, mapper))
@@ -66,6 +67,22 @@ class ApiWebIntegrationTest {
         if (auth != null) req.header("Authorization", "Bearer " + auth);
         req.method(metodo, corpo == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(corpo));
         return cliente.send(req.build(), HttpResponse.BodyHandlers.ofString());
+    }
+    @Test void editarContaExigeJwtEPreservaCredenciais() throws Exception {
+        assertEquals(401,pedir("PUT","/usuarios/me",null,"{}").statusCode());
+        var resposta=pedir("PUT","/usuarios/me",token,"{\"nome\":\"Nome novo\",\"email\":\"novo@example.test\"}");
+        assertEquals(200,resposta.statusCode(),resposta.body());
+        assertEquals("novo@example.test",mapper.readTree(pedir("GET","/usuarios/me",token,null).body()).get("email").asText());
+        assertFalse(resposta.body().contains("senhaHash"));
+    }
+    @Test void editarEventoPeloHttpRespeitaAutorizacaoEConsolidacao() throws Exception {
+        String id=criar();
+        assertEquals(401,pedir("PUT","/eventos/"+id,null,DADOS).statusCode());
+        assertEquals(200,pedir("GET","/eventos/"+id+"/gestao",token,null).statusCode());
+        assertEquals(200,pedir("PUT","/eventos/"+id,token,DADOS.replace("Simpósio de teste","Evento editado")).statusCode());
+        assertEquals(200,pedir("POST","/eventos/"+id+"/publicacao",token,null).statusCode());
+        assertEquals(200,pedir("POST","/eventos/"+id+"/encerramento",token,null).statusCode());
+        assertEquals(409,pedir("PUT","/eventos/"+id,token,DADOS).statusCode());
     }
     private String criar() throws Exception {
         var resposta = pedir("POST", "/eventos", token, DADOS);

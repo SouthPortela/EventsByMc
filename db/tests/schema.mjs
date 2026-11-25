@@ -26,7 +26,7 @@ test('Docker inicializa migracoes em ordem alfabetica incluindo administracao', 
     for (const arquivo of (await readdir(diretorio)).filter(n => n.endsWith('.sql')).sort()) {
       await db.exec(await readFile(new URL(arquivo, diretorio), 'utf8'))
     }
-    assert.equal((await db.query('SELECT max(versao)::int AS versao FROM versoes_schema')).rows[0].versao, 10)
+    assert.equal((await db.query('SELECT max(versao)::int AS versao FROM versoes_schema')).rows[0].versao, 11)
     assert.equal((await db.query('SELECT count(*)::int AS total FROM auditoria_administrativa')).rows[0].total, 0)
   } finally { await db.close() }
 })
@@ -180,15 +180,15 @@ test('V5 vincula trilhas, espaços, pessoas e agenda ao mesmo evento', async () 
     const usuario = randomUUID(), evento = randomUUID(), outroEvento = randomUUID()
     const atividade = randomUUID(), inscricao = randomUUID(), trilha = randomUUID()
     await db.query("INSERT INTO usuarios(id,nome,email) VALUES ($1,'Teste','teste-v5@example.test')", [usuario])
-    await db.query("INSERT INTO eventos(id,titulo,organizador_id,estado) VALUES ($1,'Evento A',$3,'PUBLICADO'),($2,'Evento B',$3,'PUBLICADO')", [evento, outroEvento, usuario])
+    await db.query("INSERT INTO eventos(id,titulo,organizador_id,estado,inicio,fim) VALUES ($1,'Evento A',$3,'PUBLICADO','2026-10-10 09:00','2026-10-10 18:00'),($2,'Evento B',$3,'PUBLICADO','2026-10-10 09:00','2026-10-10 18:00')", [evento, outroEvento, usuario])
     await db.query('INSERT INTO trilhas(id,evento_id,nome) VALUES ($1,$2,$3)', [trilha, evento, 'Tecnologia'])
     await db.query("INSERT INTO atividades(id,evento_id,titulo,inicio,fim,trilha_id) VALUES ($1,$2,'Palestra','2026-10-10 09:00','2026-10-10 10:00',$3)", [atividade, evento, trilha])
     await db.query('INSERT INTO inscricoes(id,evento_id,usuario_id) VALUES ($1,$2,$3)', [inscricao, evento, usuario])
     await db.query('INSERT INTO agenda_atividades(inscricao_id,evento_id,usuario_id,atividade_id) VALUES ($1,$2,$3,$4)', [inscricao, evento, usuario, atividade])
     await assert.rejects(db.query('INSERT INTO agenda_atividades(inscricao_id,evento_id,usuario_id,atividade_id) VALUES ($1,$2,$3,$4)', [inscricao, evento, usuario, atividade]), { code: '23505' })
     await assert.rejects(db.query("UPDATE eventos SET frequencia_minima_percentual=101 WHERE id=$1", [evento]), { code: '23514' })
-    await assert.rejects(db.query("UPDATE atividades SET evento_id=$1 WHERE id=$2", [outroEvento, atividade]), { code: '23503' })
-    assert.equal((await db.query('SELECT max(versao) AS versao FROM versoes_schema')).rows[0].versao, 9)
+    await assert.rejects(db.query("UPDATE atividades SET evento_id=$1 WHERE id=$2", [outroEvento, atividade]), { code: '23514' })
+    assert.equal((await db.query('SELECT max(versao) AS versao FROM versoes_schema')).rows[0].versao, 11)
   } finally { await db.close() }
 })
 
@@ -233,7 +233,7 @@ test('frequência calcula presenças obrigatórias, percentual e mínimo configu
     const usuario = randomUUID(), evento = randomUUID(), atividadeA = randomUUID(), atividadeB = randomUUID()
     const inscricao = randomUUID(), chamada = randomUUID()
     await db.query("INSERT INTO usuarios(id,nome,email) VALUES ($1,'Participante','participante@example.test')", [usuario])
-    await db.query("INSERT INTO eventos(id,titulo,organizador_id,estado,frequencia_minima_percentual) VALUES ($1,'Evento',$2,'ENCERRADO',50)", [evento, usuario])
+    await db.query("INSERT INTO eventos(id,titulo,organizador_id,estado,frequencia_minima_percentual) VALUES ($1,'Evento',$2,'RASCUNHO',50)", [evento, usuario])
     await db.query("INSERT INTO atividades(id,evento_id,titulo) VALUES ($1,$3,'A'),($2,$3,'B')", [atividadeA, atividadeB, evento])
     await db.query('INSERT INTO inscricoes(id,evento_id,usuario_id) VALUES ($1,$2,$3)', [inscricao, evento, usuario])
     await db.query("INSERT INTO chamadas_presenca(id,atividade_id,evento_id,criada_por,codigo_hash,criada_em,expira_em) VALUES ($1,$2,$3,$4,$5,'2026-10-10 12:00Z','2026-10-10 12:05Z')", [chamada, atividadeA, evento, usuario, 'a'.repeat(64)])
@@ -253,7 +253,7 @@ test('V8 calcula permanência por atividade e impede marcação duplicada', asyn
     await db.exec(await lerEntrada(new URL('db/inicializar.sql', raiz)))
     const usuario = randomUUID(), evento = randomUUID(), atividade = randomUUID(), inscricao = randomUUID()
     await db.query("INSERT INTO usuarios(id,nome,email) VALUES ($1,'Teste','teste-v8@example.test')", [usuario])
-    await db.query("INSERT INTO eventos(id,titulo,organizador_id,estado) VALUES ($1,'Evento',$2,'ENCERRADO')", [evento, usuario])
+    await db.query("INSERT INTO eventos(id,titulo,organizador_id,estado,inicio,fim) VALUES ($1,'Evento',$2,'RASCUNHO','2026-10-10 09:00','2026-10-10 12:00')", [evento, usuario])
     await db.query("INSERT INTO atividades(id,evento_id,titulo,inicio,fim,politica_frequencia,permanencia_minima_percentual) VALUES ($1,$2,'Oficina','2026-10-10 09:00','2026-10-10 11:00','PERCENTUAL_PERMANENCIA',75)", [atividade, evento])
     await db.query('INSERT INTO inscricoes(id,evento_id,usuario_id) VALUES ($1,$2,$3)', [inscricao, evento, usuario])
     const fonte = await readFile(new URL('src/main/java/br/com/eventsbymc/eventsapi/adapter/out/jdbc/JdbcRelatoriosRepository.java', raiz), 'utf8')
@@ -300,9 +300,9 @@ test('avaliação de atividade exige presença na própria atividade', async () 
     await db.query("INSERT INTO chamadas_presenca(id,atividade_id,evento_id,criada_por,codigo_hash,criada_em,expira_em) VALUES ($1,$2,$3,$4,$5,'2026-10-10 12:00Z','2026-10-10 12:05Z')", [chamada, atividadeA, evento, usuario, 'a'.repeat(64)])
     await db.query("INSERT INTO presencas(id,atividade_id,evento_id,usuario_id,inscricao_id,chamada_id,registrada_em,origem) VALUES ($1,$2,$3,$4,$5,$6,'2026-10-10 12:01Z','QR')", [randomUUID(), atividadeA, evento, usuario, inscricao, chamada])
     const fonte = await readFile(new URL('src/main/java/br/com/eventsbymc/eventsapi/adapter/out/jdbc/JdbcAvaliacaoRepository.java', raiz), 'utf8')
-    const sql = fonte.match(/private static boolean elegivel\([\s\S]*?String sql = """([\s\S]*?)"""/)[1]
+    const sql = fonte.match(/private static boolean elegivel\([\s\S]*?String sql = "([^"\n]+)"/)[1]
     const parametrizado = (() => { let i = 0; return sql.replace(/\?/g, () => `$${++i}`) })()
-    const elegivel = async atividade => (await db.query(parametrizado, [evento, usuario, atividade, atividade, atividade, atividade])).rows.length > 0
+    const elegivel = async atividade => (await db.query(parametrizado, [evento, usuario, atividade, atividade])).rows.length > 0
     assert.equal(await elegivel(null), true)
     assert.equal(await elegivel(atividadeA), true)
     assert.equal(await elegivel(atividadeB), false)

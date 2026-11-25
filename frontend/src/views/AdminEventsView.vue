@@ -70,6 +70,7 @@ onMounted(carregar)
         <td><span class="badge" :class="item.evento.estado === 'BLOQUEADO' ? 'text-bg-danger' : 'text-bg-secondary'">{{ item.evento.estado }}</span></td>
         <td><div class="d-flex flex-wrap gap-2">
           <template v-if="item.evento.estado !== 'BLOQUEADO'">
+            <RouterLink v-if="item.evento.estado !== 'ENCERRADO'" class="btn btn-sm btn-outline-primary" :to="{ name: 'event-edit', params: { id: item.evento.id } }">Editar evento</RouterLink>
             <RouterLink class="btn btn-sm btn-outline-secondary" :to="`/organizador/eventos/${item.evento.id}/programacao`">Programação</RouterLink>
             <RouterLink class="btn btn-sm btn-outline-secondary" :to="`/organizador/eventos/${item.evento.id}/questionario`">Questionário</RouterLink>
             <button v-if="item.evento.estado === 'RASCUNHO'" class="btn btn-sm btn-primary" :disabled="ocupado" @click="executar(item, 'publicacao')">Publicar</button>

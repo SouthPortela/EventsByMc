@@ -54,6 +54,18 @@ public final class JdbcUsuarioRepository implements UsuarioRepository {
     }
 
     @Override
+    public void atualizarDadosBasicos(UUID id, Pessoa pessoa) {
+        try (var c = connectionFactory.abrirConexao(); var s = c.prepareStatement(
+                "UPDATE usuarios SET nome = ?, email = ? WHERE id = ?")) {
+            s.setString(1, pessoa.getNome()); s.setString(2, pessoa.getEmail()); s.setObject(3, id);
+            if (s.executeUpdate() != 1) throw new br.com.eventsbymc.eventsapi.application.exception.TokenInvalidoException("Conta indisponível.", null);
+        } catch (SQLException e) {
+            if ("23505".equals(e.getSQLState())) throw new br.com.eventsbymc.eventsapi.domain.model.exception.EmailJaCadastradoException("informado");
+            throw new IllegalStateException("Não foi possível atualizar a conta.", e);
+        }
+    }
+
+    @Override
     public Optional<Usuario> buscarPorId(UUID id) {
         if (id == null) {
             throw new IllegalArgumentException("Identificador do usuário é obrigatório.");

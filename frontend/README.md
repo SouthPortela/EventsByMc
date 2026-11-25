@@ -11,7 +11,7 @@ Requer Node.js ^22.18.0 ou >=24.12.0. Na pasta frontend:
     npm install
     npm run dev
 
-O backend precisa estar ativo e o banco atualizado até a versão lógica 10.
+O backend precisa estar ativo e o banco atualizado até a versão lógica 11.
 Copie .env.example para .env.local se precisar alterar os padrões.
 
 | Variável | Uso |
@@ -19,7 +19,7 @@ Copie .env.example para .env.local se precisar alterar os padrões.
 | VITE_API_BASE_URL | Base das chamadas do navegador; padrão /api |
 | API_PROXY_TARGET | Destino do proxy de desenvolvimento; padrão http://127.0.0.1:8080 |
 | API_PROXY_KEEP_PREFIX | false para Java direto; true se o destino já atende em /api |
-| VITE_PUBLIC_APP_URL | URL pública do site utilizada no QR; opcional no navegador |
+| VITE_PUBLIC_APP_URL | URL pública do site utilizada no QR; opcional no navegador; loopback pode ser substituído pelo IP do host |
 
 API_PROXY_* são configurações do Vite em desenvolvimento. Não são a configuração
 do Nginx de produção. Variáveis VITE_* são públicas e incorporadas ao build;
@@ -58,6 +58,16 @@ executa as regras existentes com --fix; npm run format também altera os arquivo
 O build gera dist/. npm run preview serve essa saída para conferência local.
 O Dockerfile usa Nginx para entregar a SPA e encaminhar /api ao Java.
 
+O gerador de QR utiliza o endereço do site na rede e preserva sua porta. No site
+Docker aberto por localhost, execute `npm run presenca:rede` na raiz após subir
+os contêineres e após mudanças de IP. No desktop e no Vite, a descoberta ocorre
+a cada geração. A tela também aceita um endereço manual. Veja
+[QR na rede local](../docs/api/presenca-rede.md).
+
 O build desktop usa modo desktop e grava em desktop/renderer/, por scripts da raiz.
 Veja [desktop](../desktop/README.md), [contratos](../docs/api/contratos-webapp.md)
 e [funcionalidades adicionais](../docs/api/requisitos-funcionais-webapp.md).
+
+Edição de conta em Minha conta; edição de eventos nas listas de gestão; retificações
+na gestão de frequência; detalhes por atividade nos relatórios. Veja os
+[contratos novos](../docs/api/edicao-historico.md).

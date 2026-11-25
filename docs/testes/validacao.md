@@ -48,3 +48,13 @@ os lockfiles da raiz e do frontend; depois revise e versione as mudanças da lim
 Use os comandos do [README](../../README.md),
 [frontend](../../frontend/README.md), [desktop](../../desktop/README.md) e
 [banco](../../db/README.md). Use PostgreSQL dedicado para os testes condicionais.
+
+## Evolução: edição e histórico (schema 11)
+
+A implementação posterior adicionou edição de conta/evento, ocupação de espaços,
+ajustes de presença e relatório por atividade. Java: 61 aprovados e 7 condicionais
+ignorados; frontend: 56 aprovados; desktop: 7 aprovados. Build web e lint passaram.
+A suíte SQL nova foi preparada, mas não executou por ausência do PGlite e
+indisponibilidade de DNS/acesso ao Docker. Maven Wrapper continua bloqueado pelo
+cache. Não houve migração no banco da aplicação. Veja os
+[contratos e operação](../api/edicao-historico.md).

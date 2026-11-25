@@ -103,3 +103,9 @@ participação seguem as restrições dos casos de uso.
 Verificação: testes SQL efêmeros, Maven, Vitest, ESLint/Oxlint e build Vue, conforme o
 [README](../../README.md). Testes com banco exigem ambiente dedicado. SMTP, QR em celular
 e distribuição desktop precisam também de conferência no ambiente de uso.
+
+## Evolução do schema 11
+
+Edição de conta/evento, ocupação de espaços, retificações e relatórios por atividade
+estão nos [contratos de edição e histórico](edicao-historico.md). A presença efetiva
+considera a última retificação e as regras consolidadas ficam protegidas.

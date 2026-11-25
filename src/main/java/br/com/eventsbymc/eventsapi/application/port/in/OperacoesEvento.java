@@ -12,6 +12,9 @@ public interface OperacoesEvento {
     DadosEvento consultarPublicado(UUID eventoId);
     List<DadosEvento> listarDoOrganizador(UUID usuarioId);
     DadosEvento criar(UUID usuarioId, DadosNovoEvento dados);
+    java.util.List<br.com.eventsbymc.eventsapi.application.usecase.DadosHistoricoEvento> historico(UUID usuarioId, UUID eventoId);
+    DadosEvento consultarGestao(UUID usuarioId, UUID eventoId);
+    DadosEvento editar(UUID usuarioId, UUID eventoId, DadosNovoEvento dados);
     DadosEvento alterarCategoria(UUID usuarioId, UUID eventoId, CategoriaEvento categoria);
     DadosEvento alterarEstado(UUID usuarioId, UUID eventoId, EstadoEvento destino);
 }

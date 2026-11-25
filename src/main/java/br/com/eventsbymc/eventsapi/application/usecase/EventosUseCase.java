@@ -97,6 +97,29 @@ public final class EventosUseCase implements OperacoesEvento {
         return DadosEvento.de(evento);
     }
 
+    public DadosEvento consultarGestao(UUID usuarioId, UUID eventoId) {
+        var usuario = organizadorAutorizado(usuarioId);
+        var evento = eventos.buscarPorId(eventoId).orElseThrow(RecursoNaoEncontradoException::new);
+        if (!usuario.possuiPerfil(Perfil.ADMINISTRADOR) && !evento.getOrganizador().getId().equals(usuarioId))
+            throw new AcessoNegadoException();
+        return DadosEvento.de(evento);
+    }
+
+    public DadosEvento editar(UUID usuarioId, UUID eventoId, DadosNovoEvento dados) {
+        consultarGestao(usuarioId, eventoId);
+        if (dados == null) throw new IllegalArgumentException("Informe os dados do evento.");
+        var evento = eventos.buscarPorId(eventoId).orElseThrow(RecursoNaoEncontradoException::new);
+        try {
+            evento.editar(dados.titulo(), dados.descricao(), dados.dataInicio(), dados.dataFim(),
+                    dados.local(), dados.categoria() == null ? evento.getCategoria() : dados.categoria());
+        } catch (IllegalStateException e) { throw new ConflitoOperacaoException(e.getMessage()); }
+        if (!eventos.atualizarDados(evento, usuarioId)) throw new ConflitoOperacaoException("Evento indisponível para edição. Atualize a tela.");
+        return DadosEvento.de(evento);
+    }
+
+    public java.util.List<DadosHistoricoEvento> historico(UUID usuarioId, UUID eventoId) {
+        consultarGestao(usuarioId, eventoId); return eventos.historico(eventoId);
+    }
     private Usuario organizadorAutorizado(UUID id) {
         if (id == null) throw new AcessoNegadoException();
         var usuario = usuarios.buscarPorId(id)

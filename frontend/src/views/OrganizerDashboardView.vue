@@ -142,7 +142,7 @@ onMounted(carregar)
                   <select
                     class="form-select form-select-sm"
                     :value="evento.categoria"
-                    :disabled="!!alterando || evento.estado === 'BLOQUEADO'"
+                    :disabled="!!alterando || evento.estado === 'BLOQUEADO' || evento.estado === 'ENCERRADO'"
                     :aria-label="`Categoria de ${evento.titulo}`"
                     @change="selecionarCategoria(evento, $event)"
                   >
@@ -153,6 +153,7 @@ onMounted(carregar)
                 </td>
                 <td>{{ evento.estado }}</td>
                 <td>
+                  <RouterLink v-if="evento.estado === 'RASCUNHO' || evento.estado === 'PUBLICADO'" class="btn btn-sm btn-outline-primary me-2" :to="{ name: 'event-edit', params: { id: evento.id } }">Editar evento</RouterLink>
                   <RouterLink v-if="evento.estado !== 'BLOQUEADO'" class="btn btn-sm btn-outline-secondary me-2" :to="`/organizador/eventos/${evento.id}/programacao`">Programação e regras</RouterLink>
                   <RouterLink v-if="evento.estado !== 'BLOQUEADO'" class="btn btn-sm btn-outline-secondary me-2" :to="`/organizador/eventos/${evento.id}/questionario`">Questionário</RouterLink>
                   <RouterLink

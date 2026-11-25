@@ -18,8 +18,10 @@ versoes_schema. Não há ORM nem Flyway.
 | 8 | Políticas de frequência e marcações manuais |
 | 9 | Questionários por atividade |
 | 10 | Administração, bloqueio de eventos e auditoria |
+| 11 | Edição, conflitos de espaços, ajustes de frequência e histórico |
 
-A versão lógica 10 está no arquivo V9a__administracao_e_bloqueio_eventos.sql.
+A versão lógica 10 está em V9a__administracao_e_bloqueio_eventos.sql; a 11 está em
+V9b__edicao_frequencia_historico.sql.
 O nome preserva a ordenação alfabética dos scripts do init do PostgreSQL.
 Não renomeie migrações já distribuídas.
 
@@ -30,7 +32,7 @@ parâmetros da conexão pelo ambiente de desenvolvimento:
 
     psql -X -h localhost -U SEU_USUARIO -d SEU_BANCO -W -f db/inicializar.sql
 
-O inicializador inclui V1 até a versão lógica 10 em uma transação. Não cria o banco,
+O inicializador inclui V1 até a versão lógica 11 em uma transação. Não cria o banco,
 usuários administrativos ou mocks. No Docker, as migrações são montadas em
 /docker-entrypoint-initdb.d e executadas automaticamente apenas em volume vazio.
 
@@ -41,7 +43,7 @@ Faça backup e consulte:
     SELECT * FROM versoes_schema ORDER BY versao;
 
 Execute somente as versões pendentes, em ordem: db/atualizar-v2.sql até
-db/atualizar-v10.sql. Por exemplo, banco na versão 8 precisa das entradas 9 e 10.
+db/atualizar-v11.sql. Por exemplo, banco na versão 8 precisa das entradas 9, 10 e 11.
 Cada entrada é para psql e usa transação com interrupção em erro. Se o schema foi
 alterado manualmente, compare antes de aplicar. Não reaplique versões registradas.
 
@@ -50,14 +52,14 @@ No Docker, use um terminal do banco:
     docker compose exec postgres-db sh
     psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
 
-Dentro do psql, aplique uma migração pendente por vez, por exemplo a versão 10:
+Dentro do psql, aplique uma migração pendente por vez, por exemplo a versão 11:
 
     \set ON_ERROR_STOP on
     BEGIN;
-    \i /docker-entrypoint-initdb.d/V9a__administracao_e_bloqueio_eventos.sql
+    \i /docker-entrypoint-initdb.d/V9b__edicao_frequencia_historico.sql
     COMMIT;
 
-Confirme que a versão máxima é 10. Nunca use docker compose down -v para atualizar:
+Confirme que a versão máxima é 11. Nunca use docker compose down -v para atualizar:
 isso remove o banco persistido. Os comandos \i, \ir e \set são específicos do psql;
 no pgAdmin execute os conteúdos SQL pendentes, na ordem, dentro de transação.
 Em erro, faça ROLLBACK e investigue antes de continuar.
@@ -82,7 +84,7 @@ O cadastro público nunca concede ADMINISTRADOR.
 
 ## Dados demonstrativos
 
-Use uma instância de desenvolvimento com schema 10, nunca dados reais de participantes.
+Use uma instância de desenvolvimento com schema 11, nunca dados reais de participantes.
 Na raiz, configure .env conforme .env.example e disponibilize JDK 21 e as dependências
 Java (por exemplo, compilando com o Maven Wrapper):
 
@@ -123,7 +125,7 @@ no fragmento do link; abrir o endereço não grava presença sem confirmação e
 Os testes SQL usam PostgreSQL efêmero em memória e não leem credenciais do banco:
 
     npm install --prefix target/sql-validation --no-save --package-lock=false @electric-sql/pglite
-    node --test db/tests/schema.mjs
+    node --test db/tests/schema.mjs db/tests/edicao-historico.mjs
 
 A dependência de teste fica em target, não no produto. Uma limpeza Maven remove essa
 pasta; reinstale antes de repetir os testes SQL. A suíte cobre migrações, vínculos,
@@ -138,3 +140,5 @@ de diretório temporário do JDK em Windows, use um caminho gravável em
 Contratos: [presença](../docs/api/presenca.md),
 [funcionalidades](../docs/api/requisitos-funcionais-webapp.md) e
 [administração](../docs/api/administracao.md).
+
+Detalhes e contratos novos: [edição e histórico](../docs/api/edicao-historico.md).
