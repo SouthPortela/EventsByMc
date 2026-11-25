@@ -2,11 +2,12 @@
 
 Os caminhos abaixo são internos ao Java. O navegador usa o prefixo /api via proxy.
 Todas as rotas exigem JWT válido; o código da chamada não substitui o token.
-As tabelas da V2 são pré-requisito. Consulte [preparação do banco](../../db/README.md).
+O banco atual deve estar atualizado até a versão lógica 10. Consulte [preparação do banco](../../db/README.md).
 
 | Método | Caminho | Acesso / resultado |
 |---|---|---|
 | POST | /eventos/{id}/inscricoes | Usuário autenticado; 200 com inscrição ativa, sem duplicar |
+| DELETE | /eventos/{id}/inscricoes/me | Inscrito; cancela conforme política e remove seleções da agenda |
 | GET | /usuarios/me/participacao | Usuário autenticado; inscrições, agenda e total de presenças da própria conta |
 | GET | /eventos/{id}/atividades | Dono organizador/admin; 200 com atividades |
 | POST | /eventos/{id}/atividades | Dono organizador/admin; 201 com atividade criada |
@@ -21,8 +22,9 @@ não recebe ID de usuário enviado pelo navegador. A resposta inclui `inscricoes
 (ativas ou canceladas, com título, período, local e estado do evento), `atividades`
 dos eventos com inscrição ativa (com data de presença, quando houver) e
 `totalPresencas` do histórico. Não fornece e-mail de terceiros nem códigos de QR.
-Atividades sem horário podem ter `dataInicio` e `dataFim` nulos. A agenda é o
-cronograma dos eventos inscritos; ainda não existe reserva por atividade.
+Atividades sem horário podem ter `dataInicio` e `dataFim` nulos. Esta consulta apresenta o cronograma das inscrições. A seleção pessoal persistida usa
+GET /usuarios/me/agenda e POST/DELETE /atividades/{id}/agenda, respeitando capacidade
+e conflitos de horário. Veja [contratos de programação](requisitos-funcionais-webapp.md).
 
 Exemplo de nova atividade:
 
@@ -39,7 +41,9 @@ Exemplo de nova atividade:
 Título/local têm até 200 caracteres; descrição até 10.000. Datas são obrigatórias
 e devem estar dentro do período do evento. O contrato de agenda ainda usa
 LocalDateTime, sem política explícita de fuso, como os endpoints anteriores.
-Não existe edição/exclusão de atividade nem reserva de vaga nesta entrega.
+Não existe edição/exclusão de atividade. A seleção de agenda possui controle de vagas
+e conflito de horário. A criação completa, incluindo capacidade, trilha, espaço e
+política de frequência, usa POST /eventos/{id}/programacao.
 
 Resposta da geração:
 

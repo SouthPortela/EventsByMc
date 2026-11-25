@@ -19,7 +19,7 @@ programação publicada, exigem JWT `Authorization: Bearer`. O frontend usa
 | `POST /eventos/{id}/inscricoes` | Conta autenticada; respeita janela e limite; idempotente se ativa |
 | `DELETE /eventos/{id}/inscricoes/me` | Inscrito; cancela e remove seleções da agenda |
 | `GET /usuarios/me/agenda` | Agenda cronológica persistida |
-| `POST/DELETE /atividades/{id}/agenda` | Seleção/removal; exige inscrição ativa, vaga e ausência de conflito |
+| `POST/DELETE /atividades/{id}/agenda` | Seleção/remoção; exige inscrição ativa, vaga e ausência de conflito |
 
 Inscrições são ilimitadas por padrão (`limite_inscritos=NULL`). O organizador pode
 definir limite por evento e por atividade. Reservas da agenda usam a capacidade
@@ -91,15 +91,15 @@ injetado. Moderação, paginação e notificações estão fora deste fluxo inic
 
 ## Banco e testes
 
-Um banco vazio recebe V1–V9 automaticamente pelo Compose; um volume existente
-**não recebe migrações novas automaticamente**. Faça backup, confira
-`versoes_schema` e execute, em ordem, os scripts `db/atualizar-v5.sql` a
-`db/atualizar-v9.sql` que ainda faltarem. Consulte `db/README.md`.
+Um banco vazio recebe as migrações até a versão lógica 10 pelo Compose. Um volume
+existente não recebe migrações novas automaticamente. Confira versoes_schema e aplique
+somente as entradas db/atualizar-v2.sql até db/atualizar-v10.sql que faltarem, em ordem.
+A versão 10 usa V9a__administracao_e_bloqueio_eventos.sql. Veja [banco](../../db/README.md).
 
-Verifique com `node --test db/tests/schema.mjs`, `mvn test` e, em `frontend/`,
-`npm run test:run`, `npm exec -- oxlint .`, `npm exec -- eslint .` e
-`npm run build`. Neste Windows, os testes HTTP precisaram de
-`-DargLine=-Djdk.net.unixdomain.tmpdir=C:\Users\marcos.portela\IdeaProjects\events-api\target`;
-o resultado foi 51 testes Java descobertos, sem falhas, 6 condicionais ignorados.
-Os fluxos de SMTP e QR em celular também pedem
-validação manual no ambiente onde serão usados.
+A [administração](administracao.md) acrescenta bloqueio, auditoria e alteração de perfis.
+Os relatórios preservam histórico de eventos bloqueados; novas operações de gestão e
+participação seguem as restrições dos casos de uso.
+
+Verificação: testes SQL efêmeros, Maven, Vitest, ESLint/Oxlint e build Vue, conforme o
+[README](../../README.md). Testes com banco exigem ambiente dedicado. SMTP, QR em celular
+e distribuição desktop precisam também de conferência no ambiente de uso.

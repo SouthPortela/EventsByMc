@@ -70,7 +70,7 @@ O novo campo `usuarioId` não renomeia o campo `usuarioID` da resposta de login.
 
 ## 3. Pré-requisitos e endereço da API
 
-O projeto configura Java 21. Na revisão, `java -version` neste terminal ainda apontou para Java 8; conferir JDK da IDE, `JAVA_HOME` e `PATH` antes de executar o backend. O Node identificado foi 24.19.0.
+O projeto configura Java 21. Conferir JDK da IDE, `JAVA_HOME` e `PATH` antes de executar o backend. O Node identificado foi 24.19.0.
 
 As variáveis `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` e `JWT_SECRET` precisam estar configuradas no processo Java. `JWT_EXPIRATION_MINUTES` e `SERVER_PORT` são configurações opcionais com defaults no código. O `CompositionRoot` lê o ambiente; executar um JAR não carrega um arquivo `.env` automaticamente.
 

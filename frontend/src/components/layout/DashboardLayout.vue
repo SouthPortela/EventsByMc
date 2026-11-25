@@ -71,9 +71,6 @@ const itens = computed<NavItem[]>(() => {
         </nav>
       </aside>
       <div class="col-lg-9 col-xl-10 bg-light min-vh-100">
-        <div v-if="route.meta.apiPendente" class="alert alert-warning m-4 mb-0" role="status">
-          Esta tela ainda é demonstrativa. Os dados e ações abaixo não estão conectados à API.
-        </div>
         <RouterView />
       </div>
     </div>

@@ -69,8 +69,9 @@ um ID escolhido pelo navegador e não retorna o hash de senha.
 Nesta consulta basta estar autenticado. `VISITANTE` representa quem navega sem
 sessão, sem registro em `usuario_perfis`. O cadastro público cria PARTICIPANTE
 por padrão ou ORGANIZADOR mediante escolha explícita. A migração V3 converte
-contas antigas com VISITANTE. ADMINISTRADOR só é concedido por operação
-controlada no banco, conforme o [guia](../../db/README.md).
+contas antigas com VISITANTE. O primeiro ADMINISTRADOR é concedido por operação controlada no banco, conforme o
+[guia](../../db/README.md). Depois, a administração permite alterar perfis pela API,
+com auditoria e proteção do último administrador.
 
 O filtro libera as rotas públicas por método e caminho. `GET /eventos` é público,
 mas `POST /eventos` exige JWT e autorização. Respostas privadas usam `no-store`.
@@ -83,5 +84,5 @@ mas `POST /eventos` exige JWT e autorização. Respostas privadas usam `no-store
   Postgres, o algoritmo de hash ou a biblioteca de token não exige alterar nenhum caso de
   uso. Os handlers HTTP adaptam a entrada web aos casos de uso.
 - **Strategy**: `CodePass` e `TokenProvider` são estratégias intercambiáveis, escolhidas
-  na composição (`CompositionRoot`), não pelo caso de uso que as utiliza. As políticas
-  configuráveis do domínio ainda precisam demonstrar suas próprias variações de comportamento.
+  na composição (`CompositionRoot`), não pelo caso de uso que as utiliza. As políticas de frequência configuradas por atividade determinam quais marcações
+  qualificam presença e permanência no relatório.

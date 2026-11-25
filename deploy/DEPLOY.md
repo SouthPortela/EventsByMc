@@ -8,6 +8,9 @@ via `certbot`. **Não há Docker em produção** — não coube no disco dispon�
 `Dockerfile`/`docker-compose.yml` na raiz do repo servem só pra desenvolvimento
 local (ex.: subir um Postgres local rapidamente com `docker compose up postgres-db`).
 
+Este guia descreve a implantação Apache/systemd. A alternativa Docker Compose local
+é documentada no [README](../README.md); escolha o procedimento do ambiente utilizado.
+
 ## Visão geral
 
 ```
@@ -73,12 +76,15 @@ arquivos estáticos diretamente, sem cache de aplicação no meio.
 
 ## 3. Testar localmente (antes de expor mudanças)
 
-Para testar o frontend contra a API real sem sofrer bloqueio de CORS
-(a API não tem CORS configurado — não precisa, porque em produção tudo fica
-atrás do mesmo domínio), `frontend/vite.config.ts` já tem um proxy de
-desenvolvimento (`server.proxy['/api']` → `https://eventos.monkeycorp.com.br`,
-removendo o prefixo `/api`) — o mesmo comportamento que o Apache faz em
-produção. Basta rodar:
+O Vite encaminha /api para http://127.0.0.1:8080 por padrão, removendo o prefixo.
+Para testar contra o servidor remoto, configure frontend/.env.local:
+
+    API_PROXY_TARGET=https://eventos.monkeycorp.com.br
+    API_PROXY_KEEP_PREFIX=true
+
+O Apache remoto já atende em /api, portanto esse prefixo deve ser preservado.
+Use contas fictícias em ambiente de desenvolvimento; chamadas ao servidor real podem
+alterar dados desse servidor. Reinicie o Vite depois de mudar o ambiente e execute:
 
 ```bash
 cd frontend

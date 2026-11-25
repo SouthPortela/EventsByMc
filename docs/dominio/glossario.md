@@ -299,3 +299,12 @@ O domínio pode ser inicialmente compreendido da seguinte forma:
 
 **Participação + regra de elegibilidade**
 → pode permitir **Certificado**
+
+## Administração e bloqueio
+
+BLOQUEADO é um estado de evento que guarda motivo e estado anterior. O desbloqueio
+restaura esse estado e não apaga histórico. A auditoria registra alterações de
+perfis e bloqueios/desbloqueios na mesma transação da operação administrativa.
+
+APROVADO é uma situação calculada de frequência, não um atributo do usuário.
+Exige inscrição ativa, evento encerrado, atividades obrigatórias e percentual mínimo.
