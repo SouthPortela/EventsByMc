@@ -31,6 +31,7 @@ public final class AvaliacoesUseCase implements OperacoesAvaliacao {
         if (!usuario.possuiPerfil(Perfil.ADMINISTRADOR)
                 && !(usuario.possuiPerfil(Perfil.ORGANIZADOR) && evento.getOrganizador().getId().equals(usuarioId)))
             throw new AcessoNegadoException();
+        AcessoEvento.exigirDisponivel(evento);
     }
     public DadosAvaliacao.Questionario consultar(UUID eventoId) {
         var evento = eventos.buscarPorId(eventoId).orElseThrow(RecursoNaoEncontradoException::new);

@@ -24,6 +24,7 @@ import java.util.UUID;
 public final class JdbcEventoRepository implements EventoRepository {
     private static final String SELECT_EVENTO = """
             SELECT e.id, e.titulo, e.descricao, e.inicio, e.fim, e.local, e.estado, e.categoria,
+                   e.motivo_bloqueio, e.estado_anterior_bloqueio,
                    u.id AS usuario_id, u.nome AS organizador_nome, u.email AS organizador_email, u.senha_hash
               FROM eventos e
               JOIN usuarios u ON u.id = e.organizador_id
@@ -87,7 +88,7 @@ public final class JdbcEventoRepository implements EventoRepository {
     @Override
     public boolean alterarCategoria(UUID id, CategoriaEvento categoria) {
         try (Connection connection = connectionFactory.abrirConexao();
-             PreparedStatement statement = connection.prepareStatement("UPDATE eventos SET categoria = ? WHERE id = ?")) {
+            PreparedStatement statement = connection.prepareStatement("UPDATE eventos SET categoria = ? WHERE id = ? AND estado <> 'BLOQUEADO'")) {
             statement.setString(1, categoria.name());
             statement.setObject(2, id);
             return statement.executeUpdate() == 1;
@@ -126,11 +127,13 @@ public final class JdbcEventoRepository implements EventoRepository {
 
     private void salvarEvento(Connection connection, Evento evento) throws SQLException {
         String sql = """
-                INSERT INTO eventos (id, titulo, descricao, organizador_id, inicio, fim, local, estado, categoria)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO eventos (id, titulo, descricao, organizador_id, inicio, fim, local, estado, categoria,
+                    motivo_bloqueio, estado_anterior_bloqueio)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (id) DO UPDATE SET titulo = EXCLUDED.titulo, descricao = EXCLUDED.descricao,
                     organizador_id = EXCLUDED.organizador_id, inicio = EXCLUDED.inicio, fim = EXCLUDED.fim,
-                    local = EXCLUDED.local, estado = EXCLUDED.estado, categoria = EXCLUDED.categoria
+                    local = EXCLUDED.local, estado = EXCLUDED.estado, categoria = EXCLUDED.categoria,
+                    motivo_bloqueio = EXCLUDED.motivo_bloqueio, estado_anterior_bloqueio = EXCLUDED.estado_anterior_bloqueio
                 """;
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setObject(1, evento.getId()); statement.setString(2, evento.getTitulo());
@@ -138,6 +141,8 @@ public final class JdbcEventoRepository implements EventoRepository {
             statement.setTimestamp(5, timestamp(evento.getInicio())); statement.setTimestamp(6, timestamp(evento.getFim()));
             statement.setString(7, evento.getLocal()); statement.setString(8, evento.getEstado().name());
             statement.setString(9, evento.getCategoria().name());
+            statement.setString(10, evento.getMotivoBloqueio());
+            statement.setString(11, evento.getEstadoAnteriorBloqueio() == null ? null : evento.getEstadoAnteriorBloqueio().name());
             statement.executeUpdate();
         }
     }
@@ -163,9 +168,11 @@ public final class JdbcEventoRepository implements EventoRepository {
         UUID usuarioId = row.getObject("usuario_id", UUID.class);
         Usuario organizador = Usuario.reconstituir(usuarioId, new Pessoa(row.getString("organizador_nome"), row.getString("organizador_email")),
                 row.getString("senha_hash"), buscarPerfis(connection, usuarioId));
-        return Evento.reconstituir(row.getObject("id", UUID.class), row.getString("titulo"), row.getString("descricao"), organizador,
+        Evento evento = Evento.reconstituir(row.getObject("id", UUID.class), row.getString("titulo"), row.getString("descricao"), organizador,
                 localDateTime(row, "inicio"), localDateTime(row, "fim"), row.getString("local"),
                 CategoriaEvento.valueOf(row.getString("categoria")), EstadoEvento.valueOf(row.getString("estado")));
+        String anterior = row.getString("estado_anterior_bloqueio");
+        return Evento.reconstituirBloqueio(evento, row.getString("motivo_bloqueio"), anterior == null ? null : EstadoEvento.valueOf(anterior));
     }
 
     private EnumSet<Perfil> buscarPerfis(Connection connection, UUID usuarioId) throws SQLException {
@@ -185,8 +192,9 @@ public final class JdbcEventoRepository implements EventoRepository {
                 while (resultSet.next()) atividades.add(Atividade.reconstituir(resultSet.getObject("id", UUID.class), resultSet.getString("titulo"), resultSet.getString("descricao"), localDateTime(resultSet, "inicio"), localDateTime(resultSet, "fim"), resultSet.getString("local"), (Integer) resultSet.getObject("capacidade")));
             }
         }
-        return Evento.reconstituir(evento.getId(), evento.getTitulo(), evento.getDescricao(), evento.getOrganizador(),
-                evento.getInicio(), evento.getFim(), evento.getLocal(), evento.getCategoria(), evento.getEstado(), atividades);
+        return Evento.reconstituirBloqueio(Evento.reconstituir(evento.getId(), evento.getTitulo(), evento.getDescricao(), evento.getOrganizador(),
+                evento.getInicio(), evento.getFim(), evento.getLocal(), evento.getCategoria(), evento.getEstado(), atividades),
+                evento.getMotivoBloqueio(), evento.getEstadoAnteriorBloqueio());
     }
 
     private static Timestamp timestamp(java.time.LocalDateTime value) { return value == null ? null : Timestamp.valueOf(value); }

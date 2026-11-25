@@ -45,6 +45,7 @@ public final class ProgramacaoUseCase implements OperacoesProgramacao {
                 && evento.getOrganizador().getId().equals(usuarioId))) {
             throw new AcessoNegadoException();
         }
+        AcessoEvento.exigirDisponivel(evento);
         return evento;
     }
 

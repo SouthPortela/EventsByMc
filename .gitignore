@@ -34,3 +34,11 @@ build/
 
 ### .ENV ###
 .env
+
+### Desktop / dependencias geradas ###
+node_modules/
+.env.desktop
+.env.demo
+desktop/renderer/
+desktop/runtime-config.json
+release/

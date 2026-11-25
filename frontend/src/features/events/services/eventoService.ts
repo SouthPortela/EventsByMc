@@ -1,4 +1,6 @@
 import { apiRequest } from '@/shared/services/httpClient'
+import { useAuthStore } from '@/stores/auth'
+import { listarEventosAdmin } from '@/features/admin/services/adminService'
 import type { EventoDetalhe, EventoResumo } from '../types/evento'
 import type { CategoriaEvento } from '../types/categoria'
 import { formatarData } from '../utils/formatarData'
@@ -19,7 +21,8 @@ interface EventoResposta {
   local: string | null
   dataInicio: string | null
   dataFim: string | null
-  estado: 'RASCUNHO' | 'PUBLICADO' | 'ENCERRADO'
+  estado: 'RASCUNHO' | 'PUBLICADO' | 'ENCERRADO' | 'BLOQUEADO'
+  motivoBloqueio?: string | null
   categoria: CategoriaEvento
   atividades: {
     id: string
@@ -38,6 +41,7 @@ function resumo(evento: EventoResposta): EventoResumo {
     dataInicio: evento.dataInicio,
     dataFim: evento.dataFim,
     estado: evento.estado,
+    motivoBloqueio: evento.motivoBloqueio,
     categoria: evento.categoria,
   }
 }
@@ -79,6 +83,12 @@ export async function listarMeusEventos(): Promise<EventoResumo[]> {
   return (await apiRequest<EventoResposta[]>('/usuarios/me/eventos', { autenticada: true })).map(
     resumo,
   )
+}
+
+export async function listarEventosParaGestao(): Promise<EventoResumo[]> {
+  return useAuthStore().perfil === 'ADMINISTRADOR'
+    ? (await listarEventosAdmin()).map(item => item.evento)
+    : listarMeusEventos()
 }
 
 export async function criarEvento(dados: DadosCriacaoEvento): Promise<EventoResumo> {

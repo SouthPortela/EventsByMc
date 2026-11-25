@@ -27,6 +27,7 @@ public final class PresencaUseCase implements OperacoesPresenca {
         if (!usuario.possuiPerfil(Perfil.ADMINISTRADOR)
                 && !(usuario.possuiPerfil(Perfil.ORGANIZADOR) && evento.getOrganizador().getId().equals(usuarioId)))
             throw new AcessoNegadoException();
+        AcessoEvento.exigirDisponivel(evento);
         return evento;
     }
     public DadosPresenca.Participacao consultarParticipacao(UUID usuarioId) {

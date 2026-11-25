@@ -11,4 +11,5 @@ SET LOCAL search_path TO public;
 \ir ../src/main/resources/db/migration/V7__certificados.sql
 \ir ../src/main/resources/db/migration/V8__politicas_frequencia.sql
 \ir ../src/main/resources/db/migration/V9__questionarios_por_atividade.sql
+\ir ../src/main/resources/db/migration/V9a__administracao_e_bloqueio_eventos.sql
 COMMIT;

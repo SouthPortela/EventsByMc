@@ -63,8 +63,9 @@ public final class EventosUseCase implements OperacoesEvento {
         if (!evento.getOrganizador().getId().equals(usuarioId) && !usuario.possuiPerfil(Perfil.ADMINISTRADOR)) {
             throw new AcessoNegadoException();
         }
+        AcessoEvento.exigirDisponivel(evento);
         if (!eventos.alterarCategoria(eventoId, categoria)) {
-            throw new RecursoNaoEncontradoException();
+            throw new ConflitoOperacaoException("Evento alterado por outra operacao. Atualize a lista.");
         }
         evento.alterarCategoria(categoria);
         return DadosEvento.de(evento);
@@ -77,6 +78,7 @@ public final class EventosUseCase implements OperacoesEvento {
         if (!evento.getOrganizador().getId().equals(usuarioId) && !usuario.possuiPerfil(Perfil.ADMINISTRADOR)) {
             throw new AcessoNegadoException();
         }
+        AcessoEvento.exigirDisponivel(evento);
         if (destino != EstadoEvento.PUBLICADO && destino != EstadoEvento.ENCERRADO) {
             throw new IllegalArgumentException("Transição não suportada.");
         }

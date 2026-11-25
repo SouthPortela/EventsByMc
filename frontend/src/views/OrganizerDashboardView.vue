@@ -133,13 +133,16 @@ onMounted(carregar)
                 <td class="p-3">
                   <strong>{{ evento.titulo }}</strong>
                   <div class="small text-muted">{{ evento.local }}</div>
+                  <p v-if="evento.estado === 'BLOQUEADO'" class="alert alert-danger mt-2 mb-0 text-break" role="alert">
+                    <strong>Evento bloqueado pela administração.</strong><br />Motivo: {{ evento.motivoBloqueio }}
+                  </p>
                 </td>
                 <td>{{ formatarData(evento.dataInicio) }}</td>
                 <td>
                   <select
                     class="form-select form-select-sm"
                     :value="evento.categoria"
-                    :disabled="!!alterando"
+                    :disabled="!!alterando || evento.estado === 'BLOQUEADO'"
                     :aria-label="`Categoria de ${evento.titulo}`"
                     @change="selecionarCategoria(evento, $event)"
                   >
@@ -150,8 +153,8 @@ onMounted(carregar)
                 </td>
                 <td>{{ evento.estado }}</td>
                 <td>
-                  <RouterLink class="btn btn-sm btn-outline-secondary me-2" :to="`/organizador/eventos/${evento.id}/programacao`">Programação e regras</RouterLink>
-                  <RouterLink class="btn btn-sm btn-outline-secondary me-2" :to="`/organizador/eventos/${evento.id}/questionario`">Questionário</RouterLink>
+                  <RouterLink v-if="evento.estado !== 'BLOQUEADO'" class="btn btn-sm btn-outline-secondary me-2" :to="`/organizador/eventos/${evento.id}/programacao`">Programação e regras</RouterLink>
+                  <RouterLink v-if="evento.estado !== 'BLOQUEADO'" class="btn btn-sm btn-outline-secondary me-2" :to="`/organizador/eventos/${evento.id}/questionario`">Questionário</RouterLink>
                   <RouterLink
                     v-if="evento.estado === 'PUBLICADO'"
                     class="btn btn-sm btn-outline-primary me-2"

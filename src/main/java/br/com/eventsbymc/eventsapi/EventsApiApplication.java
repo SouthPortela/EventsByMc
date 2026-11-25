@@ -27,6 +27,7 @@ public final class EventsApiApplication {
         RotasApi.adicionarInteracao(router, raiz.interacao, raiz.objectMapper);
         RotasApi.adicionarCertificados(router, raiz.certificados, raiz.objectMapper);
         RotasApi.adicionarFrequencia(router, raiz.frequencia, raiz.objectMapper);
+        br.com.eventsbymc.eventsapi.infrastructure.adapter.in.web.AdministracaoHandler.registrar(router, raiz.administracao, raiz.objectMapper);
 
         ManipuladorGlobalDeExcessoes handlerComTratamentoDeErro =
                 new ManipuladorGlobalDeExcessoes(router, raiz.objectMapper);

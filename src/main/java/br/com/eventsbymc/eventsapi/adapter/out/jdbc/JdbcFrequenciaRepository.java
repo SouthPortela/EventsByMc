@@ -74,7 +74,7 @@ public final class JdbcFrequenciaRepository implements FrequenciaRepository {
                        e.estado AS evento_estado, i.id AS inscricao_id, i.estado AS inscricao_estado
                   FROM atividades a JOIN eventos e ON e.id = a.evento_id
                   LEFT JOIN inscricoes i ON i.evento_id = a.evento_id AND i.usuario_id = ?
-                 WHERE a.id = ? FOR UPDATE OF a
+                 WHERE a.id = ? FOR SHARE OF e FOR UPDATE OF a
                 """;
         try (var s = c.prepareStatement(sql)) {
             s.setObject(1, usuarioId); s.setObject(2, atividadeId);

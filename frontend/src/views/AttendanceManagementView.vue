@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import QRCode from 'qrcode'
-import { listarMeusEventos } from '@/features/events/services/eventoService'
+import { listarEventosParaGestao } from '@/features/events/services/eventoService'
 import type { EventoResumo } from '@/features/events/types/evento'
 import {
   criarAtividade,
@@ -61,7 +61,7 @@ function falha(e: unknown): string {
 async function carregar(): Promise<void> {
   erro.value = ''
   try {
-    eventos.value = (await listarMeusEventos()).filter((e) => e.estado !== 'ENCERRADO')
+    eventos.value = (await listarEventosParaGestao()).filter((e) => e.estado !== 'ENCERRADO' && e.estado !== 'BLOQUEADO')
   } catch (e) {
     erro.value = falha(e)
   }

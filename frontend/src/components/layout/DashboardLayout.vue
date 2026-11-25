@@ -27,6 +27,9 @@ const itens = computed<NavItem[]>(() => {
       { label: 'Usuários', to: '/admin/usuarios', icon: 'users' },
       { label: 'Eventos', to: '/admin/eventos', icon: 'calendar' },
       { label: 'Auditoria', to: '/admin/auditoria', icon: 'shield' },
+      { label: 'Inscrições', to: '/organizador/inscricoes', icon: 'users' },
+      { label: 'Frequência', to: '/organizador/frequencia', icon: 'check' },
+      { label: 'Relatórios', to: '/organizador/relatorios', icon: 'report' },
       { label: 'Minha participação', to: '/participante', icon: 'ticket' },
     ]
   if (auth.perfil === 'ORGANIZADOR')

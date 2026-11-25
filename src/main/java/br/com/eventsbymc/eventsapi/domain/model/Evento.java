@@ -17,6 +17,43 @@ public class Evento {
     private CategoriaEvento categoria;
 
     private EstadoEvento estado;
+    private String motivoBloqueio;
+    private EstadoEvento estadoAnteriorBloqueio;
+
+    public void bloquear(String motivo) {
+        if (estado == EstadoEvento.BLOQUEADO) throw new IllegalStateException("Evento ja bloqueado.");
+        if (motivo == null || motivo.isBlank() || motivo.trim().length() > 2000)
+            throw new IllegalArgumentException("Informe o motivo do bloqueio (ate 2000 caracteres).");
+        estadoAnteriorBloqueio = estado;
+        motivoBloqueio = motivo.trim();
+        estado = EstadoEvento.BLOQUEADO;
+    }
+
+    public void desbloquear() {
+        if (estado != EstadoEvento.BLOQUEADO || estadoAnteriorBloqueio == null)
+            throw new IllegalStateException("Evento nao esta bloqueado.");
+        estado = estadoAnteriorBloqueio;
+        motivoBloqueio = null;
+        estadoAnteriorBloqueio = null;
+    }
+
+    public void exigirNaoBloqueado() {
+        if (estado == EstadoEvento.BLOQUEADO)
+            throw new IllegalStateException("Evento bloqueado pela administracao. Consulte o motivo em Meus eventos.");
+    }
+
+    public static Evento reconstituirBloqueio(Evento evento, String motivo, EstadoEvento anterior) {
+        if (evento.estado == EstadoEvento.BLOQUEADO) {
+            if (anterior == null || anterior == EstadoEvento.BLOQUEADO || motivo == null || motivo.isBlank() || motivo.length() > 2000)
+                throw new IllegalArgumentException("Dados do bloqueio invalidos.");
+            evento.motivoBloqueio = motivo;
+            evento.estadoAnteriorBloqueio = anterior;
+        }
+        return evento;
+    }
+
+    public String getMotivoBloqueio() { return motivoBloqueio; }
+    public EstadoEvento getEstadoAnteriorBloqueio() { return estadoAnteriorBloqueio; }
 
     public Evento(String titulo, String descricao, Usuario organizador) {
         this(UUID.randomUUID(), titulo, descricao, organizador, null, null, null, CategoriaEvento.OUTROS, EstadoEvento.RASCUNHO, false);
@@ -100,6 +137,7 @@ public class Evento {
     }
 
     public void alterarCategoria(CategoriaEvento novaCategoria) {
+        exigirNaoBloqueado();
         if (novaCategoria == null) throw new IllegalArgumentException("Categoria é obrigatória.");
         this.categoria = novaCategoria;
     }
@@ -131,6 +169,7 @@ public class Evento {
     }
 
     public void adicionarAtividade(Atividade atividade) {
+        exigirNaoBloqueado();
         if (estado == EstadoEvento.ENCERRADO) {
             throw new IllegalStateException("Não é possível alterar um evento encerrado.");
         }

@@ -132,7 +132,7 @@ const router = createRouter({
     {
       path: '/admin',
       component: DashboardLayout,
-      meta: { minRole: 'ADMINISTRADOR', dashboard: true, apiPendente: true },
+      meta: { minRole: 'ADMINISTRADOR', dashboard: true },
       children: [
         {
           path: '',

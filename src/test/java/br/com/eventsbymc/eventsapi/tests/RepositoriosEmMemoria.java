@@ -20,8 +20,9 @@ final class RepositoriosEmMemoria {
         private final Map<UUID, Evento> dados = new HashMap<>();
         boolean conflito;
         private Evento copiar(Evento e) {
-            return Evento.reconstituir(e.getId(), e.getTitulo(), e.getDescricao(), e.getOrganizador(),
-                    e.getInicio(), e.getFim(), e.getLocal(), e.getCategoria(), e.getEstado(), e.getProgramacao().consultarAtividades());
+            return Evento.reconstituirBloqueio(Evento.reconstituir(e.getId(), e.getTitulo(), e.getDescricao(), e.getOrganizador(),
+                    e.getInicio(), e.getFim(), e.getLocal(), e.getCategoria(), e.getEstado(), e.getProgramacao().consultarAtividades()),
+                    e.getMotivoBloqueio(), e.getEstadoAnteriorBloqueio());
         }
         public Evento salvar(Evento e) { dados.put(e.getId(), copiar(e)); return e; }
         public Optional<Evento> buscarPorId(UUID id) { return Optional.ofNullable(dados.get(id)).map(this::copiar); }

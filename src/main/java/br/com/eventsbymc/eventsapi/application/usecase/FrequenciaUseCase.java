@@ -26,6 +26,7 @@ public final class FrequenciaUseCase implements OperacoesFrequencia {
         if (!usuario.possuiPerfil(Perfil.ADMINISTRADOR)
                 && !(usuario.possuiPerfil(Perfil.ORGANIZADOR) && evento.getOrganizador().getId().equals(responsavelId)))
             throw new AcessoNegadoException();
+        AcessoEvento.exigirDisponivel(evento);
     }
     public DadosFrequencia.Registro registrar(UUID responsavelId, UUID atividadeId, DadosFrequencia.NovoRegistro dados) {
         gerenciar(responsavelId, atividadeId);
