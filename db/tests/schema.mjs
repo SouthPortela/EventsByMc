@@ -3,7 +3,7 @@
 // Execução, na raiz: node --test db/tests/schema.mjs
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import { PGlite } from '../../target/sql-validation/node_modules/@electric-sql/pglite/dist/index.js'
 
@@ -19,11 +19,57 @@ async function lerEntrada(url) {
   return saida.join('\n')
 }
 
+test('Docker inicializa migracoes em ordem alfabetica incluindo administracao', async () => {
+  const db = new PGlite()
+  try {
+    const diretorio = new URL('src/main/resources/db/migration/', raiz)
+    for (const arquivo of (await readdir(diretorio)).filter(n => n.endsWith('.sql')).sort()) {
+      await db.exec(await readFile(new URL(arquivo, diretorio), 'utf8'))
+    }
+    assert.equal((await db.query('SELECT max(versao)::int AS versao FROM versoes_schema')).rows[0].versao, 10)
+    assert.equal((await db.query('SELECT count(*)::int AS total FROM auditoria_administrativa')).rows[0].total, 0)
+  } finally { await db.close() }
+})
+
+test('bloqueio persistido exige motivo, preserva estado anterior e auditoria reverte junto', async () => {
+  const db = new PGlite()
+  try {
+    await db.exec(await lerEntrada(new URL('db/inicializar.sql', raiz)))
+    const usuario = randomUUID(), evento = randomUUID()
+    await db.query("INSERT INTO usuarios(id,nome,email) VALUES ($1,'Admin teste','admin@example.test')", [usuario])
+    await db.query("INSERT INTO usuario_perfis(usuario_id,perfil) VALUES ($1,'ADMINISTRADOR')", [usuario])
+    await db.query("INSERT INTO eventos(id,titulo,organizador_id,estado) VALUES ($1,'Evento existente',$2,'RASCUNHO')", [evento, usuario])
+    await assert.rejects(db.query("UPDATE eventos SET estado='BLOQUEADO' WHERE id=$1", [evento]), { code: '23514' })
+    const fonte = await readFile(new URL('src/main/java/br/com/eventsbymc/eventsapi/adapter/out/jdbc/JdbcAdministracaoRepository.java', raiz), 'utf8')
+    let indice = 0
+    const sql = fonte.match(/"(UPDATE eventos SET estado = \?, motivo_bloqueio[^"\n]+)"/)[1].replace(/\?/g, () => '$' + ++indice)
+    await db.exec('BEGIN')
+    await db.query(sql, ['BLOQUEADO', 'Corrigir dados do local', 'RASCUNHO', evento, 'RASCUNHO'])
+    await db.query("INSERT INTO auditoria_administrativa(id,responsavel_id,acao,recurso_id,detalhe) VALUES ($1,$2,'EVENTO_BLOQUEADO',$3,'Corrigir dados do local')", [randomUUID(), usuario, evento])
+    await db.exec('COMMIT')
+    let salvo = (await db.query('SELECT estado,motivo_bloqueio,estado_anterior_bloqueio FROM eventos WHERE id=$1', [evento])).rows[0]
+    assert.deepEqual(salvo, { estado: 'BLOQUEADO', motivo_bloqueio: 'Corrigir dados do local', estado_anterior_bloqueio: 'RASCUNHO' })
+    // Um estado esperado antigo nao remove o bloqueio.
+    await db.query(sql, ['ENCERRADO', null, null, evento, 'PUBLICADO'])
+    assert.equal((await db.query('SELECT estado FROM eventos WHERE id=$1', [evento])).rows[0].estado, 'BLOQUEADO')
+    await db.exec('BEGIN')
+    await db.query(sql, ['RASCUNHO', null, null, evento, 'BLOQUEADO'])
+    await db.query("INSERT INTO auditoria_administrativa(id,responsavel_id,acao,recurso_id,detalhe) VALUES ($1,$2,'EVENTO_DESBLOQUEADO',$3,'Estado restaurado')", [randomUUID(), usuario, evento])
+    await db.exec('ROLLBACK')
+    assert.equal((await db.query('SELECT estado FROM eventos WHERE id=$1', [evento])).rows[0].estado, 'BLOQUEADO')
+    assert.equal((await db.query('SELECT count(*)::int AS total FROM auditoria_administrativa')).rows[0].total, 1)
+    await db.query(sql, ['RASCUNHO', null, null, evento, 'BLOQUEADO'])
+    salvo = (await db.query('SELECT estado,motivo_bloqueio FROM eventos WHERE id=$1', [evento])).rows[0]
+    assert.deepEqual(salvo, { estado: 'RASCUNHO', motivo_bloqueio: null })
+    assert.equal((await db.query('SELECT count(*)::int AS total FROM auditoria_administrativa')).rows[0].total, 1)
+  } finally { await db.close() }
+})
+
 test('inicialização completa, constraints e consultas do adaptador de presença', async () => {
   const db = new PGlite()
   try {
     await db.exec(await lerEntrada(new URL('db/inicializar.sql', raiz)))
-    assert.equal((await db.query('SELECT count(*)::int AS total FROM versoes_schema')).rows[0].total, 9)
+    assert.equal((await db.query('SELECT count(*)::int AS total FROM versoes_schema')).rows[0].total, 10)
     const usuario = randomUUID(), outro = randomUUID(), evento = randomUUID(), evento2 = randomUUID()
     const atividade = randomUUID(), atividade2 = randomUUID(), inscricao = randomUUID(), chamada = randomUUID()
     await db.query("INSERT INTO usuarios(id,nome,email,senha_hash) VALUES ($1,'Teste','teste@example.test','hash-teste'),($2,'Outro','outro@example.test','hash-teste')", [usuario, outro])

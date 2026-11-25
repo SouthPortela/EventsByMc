@@ -1,5 +1,50 @@
 {
+  "name": "events-by-mc-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "EventsByMc para Windows",
+  "author": "Equipe EventsByMc",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "desktop:install": "install-electron",
+    "desktop:dev": "node desktop/scripts/dev.cjs",
+    "desktop:build": "node desktop/scripts/build.cjs",
+    "desktop:start": "electron .",
+    "desktop:smoke": "node desktop/scripts/smoke.cjs",
+    "desktop:pack": "npm run desktop:build && electron-builder --win --dir",
+    "desktop:dist": "npm run desktop:build && electron-builder --win nsis",
+    "test": "node --test desktop/tests/*.test.cjs",
+    "lint": "node desktop/scripts/check.cjs"
+  },
+  "build": {
+    "appId": "br.com.eventsbymc.desktop",
+    "productName": "EventsByMc",
+    "asar": true,
+    "directories": { "output": "release" },
+    "files": [
+      "desktop/main.cjs",
+      "desktop/config.cjs",
+      "desktop/protocol.cjs",
+      "desktop/runtime-config.json",
+      "desktop/renderer/**/*",
+      "package.json"
+    ],
+    "win": { "target": "nsis" },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
   "dependencies": {
     "bootstrap": "^5.3.8"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.7",
+    "electron": "^45.5.0",
+    "electron-builder": "^26.18.0",
+    "wait-on": "^9.5.1"
   }
 }

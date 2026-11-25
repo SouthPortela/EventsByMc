@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-import { listarMeusEventos } from '@/features/events/services/eventoService'
+import { listarEventosParaGestao } from '@/features/events/services/eventoService'
 import type { EventoResumo } from '@/features/events/types/evento'
 import { baixarFrequencia, baixarFrequenciaPdf, baixarInscritos, baixarInscritosPdf, listarFrequencias, listarInscritos } from '@/features/reports/services/relatoriosService'
 import type { Frequencia, Inscrito } from '@/features/reports/services/relatoriosService'
@@ -37,7 +37,7 @@ async function baixar(tipo: 'inscritos' | 'frequencia', formato: 'csv' | 'pdf'):
 watch(eventoId, carregar)
 onMounted(async () => {
   try {
-    eventos.value = await listarMeusEventos()
+    eventos.value = await listarEventosParaGestao()
     eventoId.value = eventos.value[0]?.id ?? ''
   } catch (e) { erro.value = e instanceof ApiError ? e.message : 'Não foi possível carregar seus eventos.' }
 })

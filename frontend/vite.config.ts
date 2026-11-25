@@ -6,7 +6,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'API_')
   return {
-    plugins: [vue(), vueDevTools()],
+    plugins: mode === 'desktop' ? [vue()] : [vue(), vueDevTools()],
     resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
     server: {
       proxy: {

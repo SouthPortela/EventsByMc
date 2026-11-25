@@ -25,6 +25,7 @@ public final class InteracaoUseCase implements OperacoesInteracao {
         if (!usuario.possuiPerfil(Perfil.ADMINISTRADOR)
                 && !evento.getOrganizador().getId().equals(usuarioId)
                 && !interacao.participanteAtivo(eventoId, usuarioId)) throw new AcessoNegadoException();
+        AcessoEvento.exigirDisponivel(evento);
     }
     public List<DadosInteracao.Mensagem> listar(UUID usuarioId, UUID eventoId) {
         acessar(usuarioId, eventoId); return interacao.listar(eventoId);

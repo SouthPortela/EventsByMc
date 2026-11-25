@@ -11,7 +11,7 @@ import java.util.UUID;
 public record DadosEvento(UUID id, String titulo, String descricao, String local,
                           LocalDateTime dataInicio, LocalDateTime dataFim, EstadoEvento estado,
                           CategoriaEvento categoria,
-                          List<DadosAtividade> atividades) {
+                          List<DadosAtividade> atividades, String motivoBloqueio) {
     public DadosEvento { atividades = List.copyOf(atividades); }
 
     public record DadosAtividade(UUID id, String titulo, String local,
@@ -23,6 +23,6 @@ public record DadosEvento(UUID id, String titulo, String descricao, String local
                 .toList();
         return new DadosEvento(evento.getId(), evento.getTitulo(), evento.getDescricao(),
                 evento.getLocal(), evento.getInicio(), evento.getFim(), evento.getEstado(),
-                evento.getCategoria(), atividades);
+                evento.getCategoria(), atividades, evento.getMotivoBloqueio());
     }
 }
