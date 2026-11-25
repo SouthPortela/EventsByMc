@@ -187,34 +187,9 @@ public final class JdbcAvaliacaoRepository implements AvaliacaoRepository {
     }
 
     private static boolean elegivel(Connection c, UUID eventoId, UUID atividadeId, UUID usuarioId) throws SQLException {
-        String sql = """
-                SELECT 1 FROM inscricoes i WHERE i.evento_id = ? AND i.usuario_id = ?
-                  AND i.estado = 'ATIVA' AND EXISTS (
-                    SELECT 1 FROM presencas p JOIN atividades at ON at.id = p.atividade_id
-                     WHERE p.evento_id = i.evento_id AND p.usuario_id = i.usuario_id
-                       AND at.politica_frequencia = 'CHECKIN_UNICO'
-                       AND (CAST(? AS UUID) IS NULL OR p.atividade_id = ?)
-                    UNION ALL
-                    SELECT 1 FROM registros_frequencia rf JOIN atividades at ON at.id = rf.atividade_id
-                     WHERE rf.evento_id = i.evento_id AND rf.usuario_id = i.usuario_id
-                       AND (CAST(? AS UUID) IS NULL OR rf.atividade_id = ?)
-                       AND ((at.politica_frequencia = 'VALIDACAO_MANUAL' AND rf.marcacao = 'CONFIRMACAO')
-                         OR (at.politica_frequencia IN ('ENTRADA_SAIDA', 'PERCENTUAL_PERMANENCIA')
-                           AND rf.marcacao = 'SAIDA' AND EXISTS (
-                             SELECT 1 FROM registros_frequencia entrada
-                              WHERE entrada.atividade_id = rf.atividade_id
-                                AND entrada.usuario_id = rf.usuario_id AND entrada.marcacao = 'ENTRADA'
-                                AND rf.registrada_em > entrada.registrada_em
-                                AND (at.politica_frequencia = 'ENTRADA_SAIDA'
-                                  OR EXTRACT(EPOCH FROM (rf.registrada_em - entrada.registrada_em))
-                                    >= EXTRACT(EPOCH FROM (at.fim - at.inicio))
-                                       * at.permanencia_minima_percentual / 100.0))))
-                )
-                """;
+        String sql = "SELECT 1 FROM frequencias_efetivas f JOIN inscricoes i ON i.id=f.inscricao_id WHERE f.evento_id=? AND f.usuario_id=? AND i.estado='ATIVA' AND f.confirmada AND (CAST(? AS UUID) IS NULL OR f.atividade_id=?)";
         try (var s = c.prepareStatement(sql)) {
-            s.setObject(1, eventoId); s.setObject(2, usuarioId);
-            s.setObject(3, atividadeId); s.setObject(4, atividadeId);
-            s.setObject(5, atividadeId); s.setObject(6, atividadeId);
+            s.setObject(1,eventoId); s.setObject(2,usuarioId); s.setObject(3,atividadeId); s.setObject(4,atividadeId);
             try (var r = s.executeQuery()) { return r.next(); }
         }
     }

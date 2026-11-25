@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { consultarEventoGestao } from '@/features/events/services/eventoService'
+import HistoricoEvento from '@/features/events/components/HistoricoEvento.vue'
 import { onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader.vue'
@@ -18,6 +20,7 @@ const trilhas = ref<Trilha[]>([])
 const espacos = ref<Espaco[]>([])
 const pessoas = ref<PessoaEvento[]>([])
 const atividades = ref<AtividadeProgramacao[]>([])
+const encerrado = ref(false)
 const carregando = ref(true)
 const salvando = ref(false)
 const emitindoDeclaracao = ref(false)
@@ -55,6 +58,7 @@ async function carregar(): Promise<void> {
       consultarPolitica(eventoId), listarTrilhas(eventoId), listarEspacos(eventoId),
       listarPessoas(eventoId), listarProgramacaoGestao(eventoId),
     ])
+    encerrado.value = (await consultarEventoGestao(eventoId)).estado === 'ENCERRADO'
     Object.assign(politica, configuracao)
     inicioInscricao.value = paraLocal(configuracao.inscricoesInicio)
     fimInscricao.value = paraLocal(configuracao.inscricoesFim)
@@ -161,7 +165,7 @@ onMounted(carregar)
               <div><label for="inscricao-fim" class="form-label">Encerramento (opcional)</label><input id="inscricao-fim" v-model="fimInscricao" class="form-control" type="datetime-local" /></div>
               <div><label for="limite-inscritos" class="form-label">Limite de inscritos (vazio = sem limite)</label><input id="limite-inscritos" v-model.number="politica.limiteInscritos" class="form-control" type="number" min="1" /></div>
               <label class="form-check"><input v-model="politica.permitirCancelamento" class="form-check-input" type="checkbox" /> <span class="form-check-label">Permitir cancelamento</span></label>
-              <div><label for="frequencia-minima" class="form-label">Frequência mínima (%)</label><input id="frequencia-minima" v-model.number="politica.frequenciaMinimaPercentual" class="form-control" type="number" min="0" max="100" required /></div>
+              <div><label for="frequencia-minima" class="form-label">Frequência mínima (%)</label><input id="frequencia-minima" :disabled="encerrado" v-model.number="politica.frequenciaMinimaPercentual" class="form-control" type="number" min="0" max="100" required /></div>
               <button class="btn btn-primary-custom" :disabled="salvando" type="submit">Salvar regras</button>
             </form>
           </div>
@@ -219,5 +223,7 @@ onMounted(carregar)
         </div></section>
       </div>
     </div>
+    <p v-if="encerrado" class="alert alert-info mt-3">Evento encerrado: a frequência mínima e a programação estão preservadas. Retificações justificadas ficam disponíveis na gestão de frequência.</p>
+    <HistoricoEvento :evento-id="eventoId" />
   </div>
 </template>

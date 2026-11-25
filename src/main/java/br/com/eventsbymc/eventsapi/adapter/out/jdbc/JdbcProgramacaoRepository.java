@@ -34,6 +34,7 @@ public final class JdbcProgramacaoRepository implements ProgramacaoRepository {
     }
 
     private static RuntimeException erro(SQLException exception) {
+        if ("23514".equals(exception.getSQLState())) return new ConflitoOperacaoException("Espaço ocupado, período incompatível ou evento consolidado. Revise a programação e o histórico.");
         if ("23505".equals(exception.getSQLState())) {
             return new ConflitoOperacaoException("Esse registro já existe.");
         }
@@ -69,12 +70,19 @@ public final class JdbcProgramacaoRepository implements ProgramacaoRepository {
     }
 
     public DadosProgramacao.Politica atualizarPolitica(UUID eventoId, DadosProgramacao.Politica politica) {
+        return atualizarPolitica(eventoId, politica, null);
+    }
+    public DadosProgramacao.Politica atualizarPolitica(UUID eventoId, DadosProgramacao.Politica politica, UUID responsavelId) {
         String sql = """
                 UPDATE eventos SET inscricoes_abertas = ?, inscricoes_inicio = ?,
                     inscricoes_fim = ?, limite_inscritos = ?, permitir_cancelamento = ?,
                     frequencia_minima_percentual = ? WHERE id = ?
                 """;
         try (var c = conexoes.abrirConexao(); var s = c.prepareStatement(sql)) {
+            c.setAutoCommit(false);
+            try (var ator = c.prepareStatement("SELECT set_config('events.responsavel_id', ?, true)")) {
+                ator.setString(1, responsavelId == null ? "" : responsavelId.toString()); ator.execute();
+            }
             s.setBoolean(1, politica.inscricoesAbertas());
             s.setTimestamp(2, timestamp(politica.inscricoesInicio()));
             s.setTimestamp(3, timestamp(politica.inscricoesFim()));
@@ -84,7 +92,7 @@ public final class JdbcProgramacaoRepository implements ProgramacaoRepository {
             s.setInt(6, politica.frequenciaMinimaPercentual());
             s.setObject(7, eventoId);
             if (s.executeUpdate() != 1) throw new RecursoNaoEncontradoException();
-            return politica;
+            c.commit(); return politica;
         } catch (SQLException e) { throw erro(e); }
     }
 

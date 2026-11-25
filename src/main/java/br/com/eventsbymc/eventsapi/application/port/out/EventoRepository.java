@@ -11,6 +11,8 @@ import java.util.UUID;
 // Porta de saída para a persistência do agregado Evento. 
 public interface EventoRepository {
     Evento salvar(Evento evento);
+    boolean atualizarDados(Evento evento, UUID responsavelId);
+    java.util.List<br.com.eventsbymc.eventsapi.application.usecase.DadosHistoricoEvento> historico(UUID eventoId);
     // Compara e altera atomicamente, sem sobrescrever dados lidos por outra requisição.
     boolean alterarEstado(UUID id, EstadoEvento esperado, EstadoEvento destino);
     boolean alterarCategoria(UUID id, CategoriaEvento categoria);

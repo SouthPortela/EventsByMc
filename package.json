@@ -13,6 +13,7 @@
     "desktop:smoke": "node desktop/scripts/smoke.cjs",
     "desktop:pack": "npm run desktop:build && electron-builder --win --dir",
     "desktop:dist": "npm run desktop:build && electron-builder --win nsis",
+    "presenca:rede": "node desktop/scripts/configurar-rede.cjs",
     "test": "node --test desktop/tests/*.test.cjs",
     "lint": "node desktop/scripts/check.cjs"
   },
@@ -27,6 +28,7 @@
       "desktop/main.cjs",
       "desktop/config.cjs",
       "desktop/protocol.cjs",
+      "frontend/tools/endereco-presenca.cjs",
       "desktop/runtime-config.json",
       "desktop/renderer/**/*",
       "package.json"

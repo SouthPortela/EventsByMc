@@ -2,6 +2,7 @@
 
 const fs = require('node:fs/promises')
 const path = require('node:path')
+const { detectarEnderecoRede } = require('../frontend/tools/endereco-presenca.cjs')
 
 const SCHEME = 'eventsbymc'
 const APP_URL = `${SCHEME}://app/`
@@ -69,13 +70,18 @@ async function encaminharApi(request, url, apiUrl, fetchImpl) {
   }
 }
 
-function criarHandler({ rendererDir, apiUrl, fetchImpl = fetch }) {
+function criarHandler({ rendererDir, apiUrl, fetchImpl = fetch, detectarEndereco = detectarEnderecoRede }) {
   const raiz = path.resolve(rendererDir)
   return async (request) => {
     if (!confiavel(request.url)) return resposta(null, 403)
     const url = new URL(request.url)
     if (url.pathname.startsWith('/api/')) return encaminharApi(request, url, apiUrl, fetchImpl)
     if (!['GET', 'HEAD'].includes(request.method)) return resposta(null, 405)
+    if (url.pathname === '/presenca-rede.json') {
+      const endereco = await detectarEndereco().catch(() => null)
+      return resposta(request.method === 'HEAD' ? null : JSON.stringify({ endereco }), 200,
+        { 'Content-Type': 'application/json' })
+    }
     let pathname
     try { pathname = decodeURIComponent(url.pathname) } catch { return resposta(null, 400) }
     if (pathname.includes('\\') || pathname.includes('\0') || pathname.includes(':')) return resposta(null, 403)

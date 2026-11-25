@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public interface UsuarioRepository {
     Usuario salvar(Usuario usuario);
+    void atualizarDadosBasicos(UUID id, br.com.eventsbymc.eventsapi.domain.model.Pessoa pessoa);
     //define que a senha pode ser buscada por ID ou email, e que o retorno é um Optional, que pode ou não conter um usuário.
     //Optional é uma classe que representa um valor que pode estar presente ou ausente, evitando o uso de null.
     Optional<Usuario> buscarPorEmail(String email);

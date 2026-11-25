@@ -119,8 +119,8 @@ public final class DemoDataSeeder {
         try (var s = c.prepareStatement(sql)) {
             s.setObject(1, e.id()); s.setObject(2, e.organizador()); s.setString(3, e.titulo());
             s.setString(4, e.descricao()); s.setString(5, e.local()); s.setString(6, e.categoria());
-            s.setObject(7, e.inicio()); s.setObject(8, e.fim()); s.setString(9, e.estado());
-            s.setString(10, e.motivo()); s.setString(11, e.estadoAnterior());
+            s.setObject(7, e.inicio()); s.setObject(8, e.fim()); s.setString(9, (e.estado().equals("ENCERRADO") || e.estado().equals("BLOQUEADO")) ? "RASCUNHO" : e.estado());
+            s.setString(10, null); s.setString(11, null);
             return s.executeUpdate() == 1;
         }
     }
@@ -148,7 +148,14 @@ public final class DemoDataSeeder {
             for (var conta : dados.contas()) if (inserirConta(c, conta, hash)) contas++;
             for (int i = 0; i < dados.eventos().size(); i++) {
                 var evento = dados.eventos().get(i);
-                if (inserirEvento(c, evento)) { inserirAtividades(c, evento, i + 1); eventos++; }
+                if (inserirEvento(c, evento)) { inserirAtividades(c, evento, i + 1);
+                    if (evento.estado().equals("ENCERRADO") || evento.estado().equals("BLOQUEADO")) {
+                        try (var fechar = c.prepareStatement("UPDATE eventos SET estado=?,motivo_bloqueio=?,estado_anterior_bloqueio=? WHERE id=?")) {
+                            fechar.setString(1, evento.estado()); fechar.setString(2, evento.motivo());
+                            fechar.setString(3, evento.estadoAnterior()); fechar.setObject(4, evento.id()); fechar.executeUpdate();
+                        }
+                    }
+                    eventos++; }
             }
             c.commit();
             return new int[] {contas, eventos, eventos * 2};

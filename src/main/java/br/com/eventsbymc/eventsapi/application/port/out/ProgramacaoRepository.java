@@ -7,6 +7,9 @@ import java.util.UUID;
 public interface ProgramacaoRepository {
     DadosProgramacao.Politica consultarPolitica(UUID eventoId);
     DadosProgramacao.Politica atualizarPolitica(UUID eventoId, DadosProgramacao.Politica politica);
+    default DadosProgramacao.Politica atualizarPolitica(UUID eventoId, DadosProgramacao.Politica politica, UUID responsavelId) {
+        return atualizarPolitica(eventoId, politica);
+    }
     DadosProgramacao.Trilha criarTrilha(UUID eventoId, String nome);
     DadosProgramacao.Espaco criarEspaco(UUID eventoId, String nome, Integer capacidade);
     DadosProgramacao.Pessoa criarPessoa(UUID eventoId, String nome, String email);

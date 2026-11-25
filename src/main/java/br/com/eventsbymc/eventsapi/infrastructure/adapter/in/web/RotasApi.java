@@ -27,7 +27,9 @@ public final class RotasApi {
             br.com.eventsbymc.eventsapi.application.port.in.OperacoesFrequencia caso, ObjectMapper mapper) {
         var handler = new FrequenciaHandler(caso, mapper);
         return router.registrar("GET", "/atividades/{id}/frequencia", handler)
-                .registrar("POST", "/atividades/{id}/frequencia", handler);
+                .registrar("POST", "/atividades/{id}/frequencia", handler)
+                .registrar("GET", "/atividades/{id}/frequencia/ajustes", handler)
+                .registrar("POST", "/atividades/{id}/frequencia/ajustes", handler);
     }
 
     public static Router adicionarCertificados(Router router,
@@ -62,6 +64,8 @@ public final class RotasApi {
     public static Router adicionarRelatorios(Router router,
             br.com.eventsbymc.eventsapi.application.port.in.ConsultarRelatorios caso, ObjectMapper mapper) {
         return router
+                .registrar("GET", "/eventos/{id}/relatorios/atividades", new RelatoriosHandler(caso, mapper, RelatoriosHandler.Acao.ATIVIDADES))
+                .registrar("GET", "/eventos/{id}/relatorios/atividades.csv", new RelatoriosHandler(caso, mapper, RelatoriosHandler.Acao.ATIVIDADES_CSV))
                 .registrar("GET", "/eventos/{id}/relatorios/inscritos", new RelatoriosHandler(caso, mapper, RelatoriosHandler.Acao.INSCRITOS))
                 .registrar("GET", "/eventos/{id}/relatorios/frequencia", new RelatoriosHandler(caso, mapper, RelatoriosHandler.Acao.FREQUENCIA))
                 .registrar("GET", "/eventos/{id}/relatorios/inscritos.csv", new RelatoriosHandler(caso, mapper, RelatoriosHandler.Acao.INSCRITOS_CSV))
@@ -112,6 +116,9 @@ public final class RotasApi {
                 .registrar("GET", "/eventos", new CatalogoHandler(eventos, mapper, false))
                 .registrar("GET", "/eventos/{id}", new CatalogoHandler(eventos, mapper, true))
                 .registrar("GET", "/usuarios/me/eventos", new GestaoEventosHandler(eventos, mapper, LISTAR))
+                .registrar("GET", "/eventos/{id}/historico", new GestaoEventosHandler(eventos, mapper, HISTORICO))
+                .registrar("GET", "/eventos/{id}/gestao", new GestaoEventosHandler(eventos, mapper, CONSULTAR_GESTAO))
+                .registrar("PUT", "/eventos/{id}", new GestaoEventosHandler(eventos, mapper, EDITAR))
                 .registrar("POST", "/eventos", new GestaoEventosHandler(eventos, mapper, CRIAR))
                 .registrar("PATCH", "/eventos/{id}/categoria", new GestaoEventosHandler(eventos, mapper, ALTERAR_CATEGORIA))
                 .registrar("POST", "/eventos/{id}/publicacao", new GestaoEventosHandler(eventos, mapper, PUBLICAR))

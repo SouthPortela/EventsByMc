@@ -113,3 +113,16 @@ export async function alterarEstadoEvento(
     }),
   )
 }
+
+export function consultarEventoGestao(id: string): Promise<DadosCriacaoEvento & { estado: EventoResumo['estado'] }> {
+  return apiRequest('/eventos/' + encodeURIComponent(id) + '/gestao', { autenticada: true })
+}
+export async function editarEvento(id: string, dados: DadosCriacaoEvento): Promise<EventoResumo> {
+  return resumo(await apiRequest<EventoResposta>('/eventos/' + encodeURIComponent(id), {
+    method: 'PUT', autenticada: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados),
+  }))
+}
+export interface HistoricoEvento { id: number; responsavelId: string | null; registradaEm: string; antes: string; depois: string }
+export function consultarHistoricoEvento(id: string): Promise<HistoricoEvento[]> {
+  return apiRequest('/eventos/' + encodeURIComponent(id) + '/historico', { autenticada: true })
+}

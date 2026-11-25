@@ -14,35 +14,11 @@ public final class JdbcRelatoriosRepository implements RelatoriosRepository {
     private static final String FREQUENCIA = """
             SELECT i.usuario_id, u.nome, u.email, i.estado AS inscricao_estado,
                    e.estado AS evento_estado, e.frequencia_minima_percentual,
-                   (SELECT COUNT(*) FROM atividades a
-                     WHERE a.evento_id = e.id AND a.presenca_obrigatoria) AS obrigatorias,
-                   (SELECT COUNT(*) FROM atividades a
-                    WHERE a.evento_id = e.id AND a.presenca_obrigatoria AND (
-                      (a.politica_frequencia = 'CHECKIN_UNICO' AND EXISTS (
-                        SELECT 1 FROM presencas p WHERE p.atividade_id = a.id
-                          AND p.usuario_id = i.usuario_id))
-                      OR (a.politica_frequencia = 'VALIDACAO_MANUAL' AND EXISTS (
-                        SELECT 1 FROM registros_frequencia rf WHERE rf.atividade_id = a.id
-                          AND rf.usuario_id = i.usuario_id AND rf.marcacao = 'CONFIRMACAO'))
-                      OR (a.politica_frequencia IN ('ENTRADA_SAIDA', 'PERCENTUAL_PERMANENCIA')
-                        AND EXISTS (
-                          SELECT 1 FROM registros_frequencia entrada
-                          JOIN registros_frequencia saida
-                            ON saida.atividade_id = entrada.atividade_id
-                           AND saida.usuario_id = entrada.usuario_id AND saida.marcacao = 'SAIDA'
-                         WHERE entrada.atividade_id = a.id AND entrada.usuario_id = i.usuario_id
-                           AND entrada.marcacao = 'ENTRADA'
-                           AND saida.registrada_em > entrada.registrada_em
-                           AND (a.politica_frequencia = 'ENTRADA_SAIDA'
-                             OR (a.inicio IS NOT NULL AND a.fim IS NOT NULL
-                               AND EXTRACT(EPOCH FROM (saida.registrada_em - entrada.registrada_em))
-                                 >= EXTRACT(EPOCH FROM (a.fim - a.inicio))
-                                    * a.permanencia_minima_percentual / 100.0))))
-                    )) AS confirmadas
-              FROM inscricoes i
-              JOIN usuarios u ON u.id = i.usuario_id
-              JOIN eventos e ON e.id = i.evento_id
-             WHERE i.evento_id = ?
+                   (SELECT COUNT(*) FROM atividades a WHERE a.evento_id=e.id AND a.presenca_obrigatoria) AS obrigatorias,
+                   (SELECT COUNT(*) FROM frequencias_efetivas f JOIN atividades a ON a.id=f.atividade_id
+                      WHERE f.inscricao_id=i.id AND a.presenca_obrigatoria AND f.confirmada) AS confirmadas
+            FROM inscricoes i JOIN usuarios u ON u.id=i.usuario_id JOIN eventos e ON e.id=i.evento_id
+            WHERE i.evento_id = ?
             """;
     private final JdbcConnectionFactory conexoes;
 
@@ -69,6 +45,30 @@ public final class JdbcRelatoriosRepository implements RelatoriosRepository {
         } catch (SQLException e) { throw new IllegalStateException("Falha ao consultar inscritos.", e); }
     }
 
+    private static java.time.Instant instante(ResultSet r, String nome) throws SQLException {
+        var valor = r.getTimestamp(nome); return valor == null ? null : valor.toInstant();
+    }
+    public List<DadosRelatorios.Atividade> porAtividade(UUID eventoId) {
+        String sql = """
+            SELECT f.*, a.titulo AS atividade_titulo, a.politica_frequencia, u.nome,u.email,i.estado,
+                EXISTS (SELECT 1 FROM agenda_atividades ga WHERE ga.atividade_id=a.id AND ga.usuario_id=u.id) AS reservada
+            FROM frequencias_efetivas f JOIN atividades a ON a.id=f.atividade_id
+            JOIN usuarios u ON u.id=f.usuario_id JOIN inscricoes i ON i.id=f.inscricao_id
+            WHERE f.evento_id=? ORDER BY a.inicio,a.titulo,u.nome,u.id
+            """;
+        var lista = new ArrayList<DadosRelatorios.Atividade>();
+        try (var c = conexoes.abrirConexao(); var s = c.prepareStatement(sql)) {
+            s.setObject(1, eventoId);
+            try (var r = s.executeQuery()) {
+                while (r.next()) lista.add(new DadosRelatorios.Atividade(r.getObject("atividade_id",UUID.class),
+                    r.getString("atividade_titulo"),r.getObject("usuario_id",UUID.class),r.getString("nome"),r.getString("email"),
+                    r.getString("estado"),r.getBoolean("reservada"),r.getBoolean("confirmada"),r.getString("politica_frequencia"),
+                    instante(r,"registrada_em"),instante(r,"entrada_em"),instante(r,"saida_em"),r.getString("origem"),
+                    r.getString("motivo"),r.getObject("responsavel_id",UUID.class)));
+            }
+            return List.copyOf(lista);
+        } catch (SQLException e) { throw new IllegalStateException("Falha ao consultar relatório por atividade.", e); }
+    }
     private static DadosRelatorios.Frequencia mapear(ResultSet r) throws SQLException {
         int obrigatorias = r.getInt("obrigatorias");
         int confirmadas = r.getInt("confirmadas");

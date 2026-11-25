@@ -56,6 +56,32 @@ public final class JdbcEventoRepository implements EventoRepository {
     }
 
     @Override
+    public boolean atualizarDados(Evento e, UUID responsavelId) {
+        String sql = "UPDATE eventos SET titulo=?, descricao=?, inicio=?, fim=?, local=?, categoria=? WHERE id=? AND estado IN ('RASCUNHO','PUBLICADO')";
+        try (var c = connectionFactory.abrirConexao(); var s = c.prepareStatement(sql)) {
+            c.setAutoCommit(false);
+            try (var ator = c.prepareStatement("SELECT set_config('events.responsavel_id', ?, true)")) {
+                ator.setString(1, responsavelId.toString()); ator.execute();
+            }
+            s.setString(1, e.getTitulo()); s.setString(2, e.getDescricao());
+            s.setObject(3, e.getInicio()); s.setObject(4, e.getFim()); s.setString(5, e.getLocal());
+            s.setString(6, e.getCategoria().name()); s.setObject(7, e.getId());
+            boolean alterado = s.executeUpdate() == 1; c.commit(); return alterado;
+        } catch (SQLException ex) {
+            if ("23514".equals(ex.getSQLState())) throw new br.com.eventsbymc.eventsapi.application.exception.ConflitoOperacaoException("O período precisa abranger a programação e preservar o histórico.");
+            throw new IllegalStateException("Não foi possível editar o evento.", ex);
+        }
+    }
+
+    public java.util.List<br.com.eventsbymc.eventsapi.application.usecase.DadosHistoricoEvento> historico(UUID eventoId) {
+        var lista = new ArrayList<br.com.eventsbymc.eventsapi.application.usecase.DadosHistoricoEvento>();
+        try (var c = connectionFactory.abrirConexao(); var s = c.prepareStatement("SELECT id,responsavel_id,registrada_em,antes::text,depois::text FROM historico_eventos WHERE evento_id=? ORDER BY id DESC")) {
+            s.setObject(1,eventoId);
+            try (var rows = s.executeQuery()) { while (rows.next()) lista.add(new br.com.eventsbymc.eventsapi.application.usecase.DadosHistoricoEvento(rows.getLong("id"),rows.getObject("responsavel_id",UUID.class),rows.getTimestamp("registrada_em").toInstant(),rows.getString("antes"),rows.getString("depois"))); }
+            return List.copyOf(lista);
+        } catch (SQLException e) { throw new IllegalStateException("Não foi possível consultar o histórico.",e); }
+    }
+    @Override
     public Optional<Evento> buscarPorId(UUID id) {
         if (id == null) throw new IllegalArgumentException("Identificador do evento é obrigatório.");
         try (Connection connection = connectionFactory.abrirConexao();
@@ -93,6 +119,7 @@ public final class JdbcEventoRepository implements EventoRepository {
             statement.setObject(2, id);
             return statement.executeUpdate() == 1;
         } catch (SQLException exception) {
+            if ("23514".equals(exception.getSQLState())) throw new br.com.eventsbymc.eventsapi.application.exception.ConflitoOperacaoException("Evento encerrado preserva sua categoria.");
             throw new IllegalStateException("Não foi possível alterar a categoria do evento.", exception);
         }
     }

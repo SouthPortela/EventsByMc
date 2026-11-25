@@ -7,8 +7,9 @@
 - [x] Frequência, avaliações, relatórios e certificados.
 - [x] Administração real com perfis, bloqueios e auditoria (schema 10).
 - [x] Interface compartilhada entre web e desktop Windows.
-- [ ] Upload de imagens e edição de conta.
-- [ ] Edição geral/exclusão de eventos e atividades.
+- [x] Edição de conta e eventos, conflitos de espaços, retificações auditadas e relatórios por atividade.
+- [ ] Upload de imagens.
+- [ ] Edição geral de atividades e exclusão de eventos/atividades.
 - [ ] Moderação/paginação de mensagens e envio em massa.
 - [ ] Sincronização offline e atualização automática do desktop.
 - [ ] Homologação integrada no ambiente de entrega: celular, SMTP e instalador.

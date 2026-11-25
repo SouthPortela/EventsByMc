@@ -60,6 +60,12 @@ export const useAuthStore = defineStore('auth', () => {
     persistir()
   }
 
+  function atualizarDadosConta(dados: { nome: string; email: string }): void {
+    nome.value = dados.nome
+    email.value = dados.email
+    persistir()
+  }
+
   function sair(): void {
     token.value = null
     usuarioId.value = null
@@ -69,5 +75,5 @@ export const useAuthStore = defineStore('auth', () => {
     window.sessionStorage.removeItem(STORAGE_KEY)
   }
 
-  return { token, usuarioId, nome, email, perfis, perfil, autenticado, entrarComApi, sair }
+  return { token, usuarioId, nome, email, perfis, perfil, autenticado, entrarComApi, atualizarDadosConta, sair }
 })

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ConsultarRelatorios {
+    List<DadosRelatorios.Atividade> porAtividade(UUID usuarioId, UUID eventoId);
     List<DadosRelatorios.Inscrito> inscritos(UUID usuarioId, UUID eventoId);
     List<DadosRelatorios.Frequencia> frequencias(UUID usuarioId, UUID eventoId);
     DadosRelatorios.Frequencia minhaFrequencia(UUID usuarioId, UUID eventoId);

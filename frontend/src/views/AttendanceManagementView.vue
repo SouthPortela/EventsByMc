@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import QRCode from 'qrcode'
+import AjustesFrequencia from '@/features/attendance/components/AjustesFrequencia.vue'
 import { listarEventosParaGestao } from '@/features/events/services/eventoService'
 import type { EventoResumo } from '@/features/events/types/evento'
 import {
@@ -12,9 +13,11 @@ import { listarProgramacaoGestao, type AtividadeProgramacao } from '@/features/e
 import { listarInscritos, type Inscrito } from '@/features/reports/services/relatoriosService'
 import { listarRegistros, registrarFrequencia, type RegistroFrequencia } from '@/features/attendance/services/frequenciaService'
 import { linkPresenca } from '@/features/attendance/utils/codigoPresenca'
+import { resolverEnderecoPresenca, validarEnderecoPresenca } from '@/features/attendance/services/enderecoPresenca'
 import { ApiError } from '@/shared/services/httpClient'
 const eventos = ref<EventoResumo[]>([])
 const eventoId = ref('')
+const eventoEncerrado = computed(() => eventos.value.find(e => e.id === eventoId.value)?.estado === 'ENCERRADO')
 const atividades = ref<AtividadeProgramacao[]>([])
 const inscritos = ref<Inscrito[]>([])
 const registros = ref<RegistroFrequencia[]>([])
@@ -42,15 +45,19 @@ const restante = computed(() =>
     ? Math.max(0, Math.ceil((Date.parse(chamada.value.expiraEm) - agora.value) / 1000))
     : 0,
 )
-const base =
-  import.meta.env.VITE_PUBLIC_APP_URL ||
-  new URL(import.meta.env.BASE_URL, window.location.origin).toString()
-const enderecoLocal = computed(() => {
-  try {
-    return ['localhost', '127.0.0.1', '[::1]'].includes(new URL(base).hostname)
-  } catch {
-    return true
-  }
+const enderecoManual = ref('')
+const enderecoDetectado = ref('')
+const enderecoNoQr = ref('')
+async function detectarEndereco(): Promise<string> {
+  return resolverEnderecoPresenca({
+    configurado: import.meta.env.VITE_PUBLIC_APP_URL,
+    pagina: window.location.href,
+    caminhoBase: import.meta.env.BASE_URL,
+  })
+}
+onMounted(async () => {
+  try { enderecoDetectado.value = await detectarEndereco() }
+  catch { /* O endereco pode ser informado antes de gerar a chamada. */ }
 })
 const novo = reactive({ titulo: '', descricao: '', dataInicio: '', dataFim: '', local: '' })
 function falha(e: unknown): string {
@@ -61,7 +68,7 @@ function falha(e: unknown): string {
 async function carregar(): Promise<void> {
   erro.value = ''
   try {
-    eventos.value = (await listarEventosParaGestao()).filter((e) => e.estado !== 'ENCERRADO' && e.estado !== 'BLOQUEADO')
+    eventos.value = (await listarEventosParaGestao()).filter((e) => e.estado !== 'BLOQUEADO')
   } catch (e) {
     erro.value = falha(e)
   }
@@ -148,6 +155,10 @@ async function gerar(): Promise<void> {
   chamada.value = null
   imagem.value = ''
   try {
+    const base = enderecoManual.value.trim()
+      ? validarEnderecoPresenca(enderecoManual.value.trim())
+      : await detectarEndereco()
+    if (!enderecoManual.value.trim()) enderecoDetectado.value = base
     const resultado = await gerarChamada(atividadeId.value)
     chamada.value = resultado
     imagem.value = await QRCode.toDataURL(linkPresenca(base, resultado.codigo), {
@@ -155,10 +166,11 @@ async function gerar(): Promise<void> {
       margin: 4,
       errorCorrectionLevel: 'M',
     })
+    enderecoNoQr.value = base
   } catch (e) {
     erro.value = chamada.value
       ? 'A chamada foi criada, mas não foi possível desenhar o QR. Utilize o código abaixo e confira o endereço configurado.'
-      : falha(e)
+      : e instanceof Error && !(e instanceof ApiError) ? e.message : falha(e)
   } finally {
     ocupado.value = false
   }
@@ -170,11 +182,9 @@ async function gerar(): Promise<void> {
     <p class="text-muted">Escolha a atividade e exiba um código temporário aos participantes.</p>
     <div v-if="erro" class="alert alert-warning" role="alert">{{ erro }}</div>
     <div v-if="mensagem" class="alert alert-success" role="status">{{ mensagem }}</div>
-    <div v-if="enderecoLocal" class="alert alert-info">
-      Localhost não abre no celular. Para testar o QR, configure o endereço do webapp acessível pelo
-      celular; a digitação funciona neste navegador.
-    </div>
-    <div class="row g-4">
+    <p v-if="eventos.find(e => e.id === eventoId)?.estado === 'ENCERRADO'" class="alert alert-info">Evento encerrado: os dados e regras estão preservados. Retificações exigem motivo e ficam no histórico.</p>
+    <AjustesFrequencia v-if="atividadeId" :atividade-id="atividadeId" :evento-id="eventoId" />
+    <div class="row g-4 mt-2">
       <div class="col-lg-5">
         <section class="card border-0 shadow-sm mb-4">
           <div class="card-body p-4">
@@ -212,9 +222,23 @@ async function gerar(): Promise<void> {
               </option>
               <option v-for="a in atividades" :key="a.id" :value="a.id">{{ a.titulo }} · {{ a.politicaFrequencia.replaceAll('_', ' ') }}</option>
             </select>
+            <label for="endereco-presenca" class="form-label fw-semibold">Endereço do site para o celular</label>
+            <input
+              id="endereco-presenca"
+              v-model="enderecoManual"
+              type="url"
+              class="form-control mb-2"
+              :placeholder="enderecoDetectado || 'http://IP-do-computador:porta/'"
+              :disabled="ocupado"
+              aria-describedby="endereco-presenca-ajuda"
+            />
+            <p id="endereco-presenca-ajuda" class="small text-muted mb-3">
+              {{ enderecoDetectado ? 'Endereço automático: ' + enderecoDetectado : 'Informe o endereço do site na rede local.' }}
+              Deixe vazio para detectar automaticamente. O celular deve estar na mesma rede do computador.
+            </p>
             <button
               class="btn btn-primary-custom w-100"
-              :disabled="ocupado || !atividadeId || atividadeSelecionada?.politicaFrequencia !== 'CHECKIN_UNICO'"
+              :disabled="ocupado || eventoEncerrado || !atividadeId || atividadeSelecionada?.politicaFrequencia !== 'CHECKIN_UNICO'"
               @click="gerar"
             >
               {{ ocupado ? 'Aguarde...' : 'Gerar nova chamada' }}
@@ -224,7 +248,7 @@ async function gerar(): Promise<void> {
             </p>
           </div>
         </section>
-        <details v-if="eventoId" class="card border-0 shadow-sm">
+        <details v-if="eventoId && !eventoEncerrado" class="card border-0 shadow-sm">
           <summary class="p-3 fw-semibold">Cadastrar atividade</summary>
           <form class="card-body" @submit.prevent="adicionar">
             <fieldset :disabled="ocupado || carregandoAtividades">
@@ -278,7 +302,7 @@ async function gerar(): Promise<void> {
           <div class="card-body p-4">
             <h2 class="h4">Marcação de frequência</h2>
             <p class="text-muted small">Política: {{ atividadeSelecionada.politicaFrequencia.replaceAll('_', ' ') }}. Todas as marcações registram o responsável autenticado.</p>
-            <form @submit.prevent="registrarManual">
+            <form v-if="!eventoEncerrado" @submit.prevent="registrarManual">
               <label for="participante-manual" class="form-label">Participante inscrito</label>
               <select id="participante-manual" v-model="participanteId" class="form-select mb-3" required>
                 <option value="">Selecione</option>
@@ -311,6 +335,7 @@ async function gerar(): Promise<void> {
                   width="320"
                   height="320"
                 />
+                <p v-if="imagem" class="small text-muted text-break">Endereço no QR: {{ enderecoNoQr }}</p>
                 <p class="small text-muted mb-1">
                   Ou digite este código na página Confirmar presença:
                 </p>

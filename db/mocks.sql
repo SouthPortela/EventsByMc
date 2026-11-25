@@ -337,6 +337,18 @@ WHERE entrada.marcacao = 'ENTRADA'
     );
 
 -- A conclusão é calculada pela frequência; não existe coluna "concluído".
+-- Se a versão 11 estiver aplicada, respeita as retificações já registradas.
+DO $
+BEGIN
+    IF to_regclass('public.frequencias_efetivas') IS NOT NULL THEN
+        DELETE FROM mock_confirmacoes;
+        INSERT INTO mock_confirmacoes(atividade_id, usuario_id)
+        SELECT f.atividade_id, f.usuario_id FROM frequencias_efetivas f
+        JOIN mock_vinculos i ON i.id=f.inscricao_id
+        WHERE i.estado='ATIVA' AND f.confirmada;
+    END IF;
+END;
+$;
 CREATE TEMP TABLE mock_resultados ON COMMIT DROP AS
 SELECT
     i.id AS inscricao_id,

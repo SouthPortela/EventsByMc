@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { listarEventosParaGestao } from '@/features/events/services/eventoService'
 import type { EventoResumo } from '@/features/events/types/evento'
-import { baixarFrequencia, baixarFrequenciaPdf, baixarInscritos, baixarInscritosPdf, listarFrequencias, listarInscritos } from '@/features/reports/services/relatoriosService'
+import { listarRelatorioAtividades, baixarRelatorioAtividades, type RelatorioAtividade, baixarFrequencia, baixarFrequenciaPdf, baixarInscritos, baixarInscritosPdf, listarFrequencias, listarInscritos } from '@/features/reports/services/relatoriosService'
 import type { Frequencia, Inscrito } from '@/features/reports/services/relatoriosService'
 import { ApiError } from '@/shared/services/httpClient'
 
@@ -12,14 +12,24 @@ const inscritos = ref<Inscrito[]>([])
 const frequencias = ref<Frequencia[]>([])
 const carregando = ref(false)
 const erro = ref('')
+const detalhe = ref<RelatorioAtividade[]>([])
+const atividadeFiltro = ref('')
+const somenteReservas = ref(false)
+const atividadesFiltro = computed(() => Array.from(new Map(detalhe.value.map(a => [a.atividadeId, a.atividadeTitulo])).entries()))
+const linhasAtividade = computed(() => detalhe.value.filter(a => (!atividadeFiltro.value || a.atividadeId === atividadeFiltro.value) && (!somenteReservas.value || a.reservada)))
+async function exportarAtividades(): Promise<void> {
+  try { await baixarRelatorioAtividades(eventoId.value) }
+  catch (e) { erro.value = e instanceof ApiError ? e.message : 'Não foi possível exportar.' }
+}
 
 async function carregar(): Promise<void> {
+  inscritos.value = []; frequencias.value = []; detalhe.value = []; atividadeFiltro.value = ''
   if (!eventoId.value) return
   carregando.value = true
   erro.value = ''
   try {
-    ;[inscritos.value, frequencias.value] = await Promise.all([
-      listarInscritos(eventoId.value), listarFrequencias(eventoId.value),
+    ;[inscritos.value, frequencias.value, detalhe.value] = await Promise.all([
+      listarInscritos(eventoId.value), listarFrequencias(eventoId.value), listarRelatorioAtividades(eventoId.value),
     ])
   } catch (e) {
     erro.value = e instanceof ApiError ? e.message : 'Não foi possível carregar os relatórios.'
@@ -73,6 +83,18 @@ onMounted(async () => {
         <div class="table-responsive"><table class="table mb-0">
           <thead><tr><th>Participante</th><th>Presenças</th><th>Percentual</th><th>Mínimo</th><th>Situação</th></tr></thead>
           <tbody><tr v-for="item in frequencias" :key="item.usuarioId"><td>{{ item.nome }}</td><td>{{ item.presencasValidas }}/{{ item.atividadesObrigatorias }}</td><td>{{ item.percentual }}%</td><td>{{ item.minimoExigido }}%</td><td>{{ item.situacao }}</td></tr></tbody>
+        </table></div>
+      </section>
+      <section class="card card-body mt-4">
+        <h2 class="h5">Inscrições e frequência por atividade</h2>
+        <label class="form-label" for="relatorio-atividade">Atividade</label>
+        <select id="relatorio-atividade" v-model="atividadeFiltro" class="form-select mb-2"><option value="">Todas</option><option v-for="[id, nome] in atividadesFiltro" :key="id" :value="id">{{ nome }}</option></select>
+        <label class="mb-3"><input v-model="somenteReservas" type="checkbox" class="form-check-input" /> Mostrar somente reservas de atividade</label>
+        <p class="small">Vínculos: {{ linhasAtividade.length }} · Reservas ativas: {{ linhasAtividade.filter(a => a.reservada && a.inscricaoEstado === 'ATIVA').length }} · Presenças válidas de inscrições ativas: {{ linhasAtividade.filter(a => a.confirmada && a.inscricaoEstado === 'ATIVA').length }}</p>
+        <button class="btn btn-outline-primary mb-3 align-self-start" @click="exportarAtividades">Exportar todas as atividades CSV</button>
+        <div class="table-responsive"><table class="table">
+          <thead><tr><th>Atividade</th><th>Participante</th><th>Inscrição</th><th>Reserva</th><th>Presença</th><th>Entrada</th><th>Saída</th><th>Origem / ajuste</th></tr></thead>
+          <tbody><tr v-for="a in linhasAtividade" :key="a.atividadeId + a.usuarioId"><td>{{ a.atividadeTitulo }}</td><td>{{ a.nome }}</td><td>{{ a.inscricaoEstado }}</td><td>{{ a.reservada ? 'Sim' : 'Sem seleção' }}</td><td>{{ a.confirmada ? 'Confirmada' : 'Não confirmada' }}</td><td>{{ a.entradaEm ? new Date(a.entradaEm).toLocaleString('pt-BR') : '—' }}</td><td>{{ a.saidaEm ? new Date(a.saidaEm).toLocaleString('pt-BR') : '—' }}</td><td>{{ a.origem }} {{ a.motivo }}</td></tr></tbody>
         </table></div>
       </section>
     </template>

@@ -19,6 +19,13 @@ public final class FrequenciaHandler implements HttpHandler {
                 .orElseThrow(() -> new TokenInvalidoException("Sessão inválida.", null)).usuarioId();
         UUID atividadeId = Router.uuidRecurso(exchange);
         exchange.getResponseHeaders().set("Cache-Control", "no-store");
+        if (exchange.getRequestURI().getPath().endsWith("/ajustes")) {
+            if (exchange.getRequestMethod().equals("GET"))
+                HttpRespostas.enviarJson(exchange, 200, caso.ajustes(usuarioId, atividadeId), mapper);
+            else HttpRespostas.enviarJson(exchange, 201, caso.ajustar(usuarioId, atividadeId,
+                    HttpRespostas.lerJson(exchange, DadosFrequencia.NovoAjuste.class, mapper)), mapper);
+            return;
+        }
         if (exchange.getRequestMethod().equals("GET"))
             HttpRespostas.enviarJson(exchange, 200, caso.listar(usuarioId, atividadeId), mapper);
         else HttpRespostas.enviarJson(exchange, 201, caso.registrar(usuarioId, atividadeId,

@@ -86,6 +86,12 @@ const router = createRouter({
           meta: { title: 'Painel do organizador' },
         },
         {
+          path: 'eventos/:id/editar',
+          name: 'event-edit',
+          component: () => import('../views/EventFormView.vue'),
+          meta: { title: 'Editar evento' },
+        },
+        {
           path: 'eventos/novo',
           name: 'event-create',
           component: () => import('../views/EventFormView.vue'),

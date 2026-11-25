@@ -65,10 +65,11 @@ devem aparecer em logs. QR não contém token JWT de login.
 
 A API não carrega .env automaticamente fora do Docker. Consulte
 [execução](../../README.md), [frontend](../../frontend/README.md) e
-[banco](../../db/README.md). O schema deve estar na versão lógica 10.
+[banco](../../db/README.md). O schema deve estar na versão lógica 11.
 
-Não há upload de imagens, edição de conta, edição geral/exclusão de evento/atividade
-ou chave de idempotência para criação de evento. Depois de falha de rede ao criar,
+Há edição de conta e evento, relatórios por atividade e ajustes auditáveis conforme
+[edição e histórico](edicao-historico.md). Não há upload de imagens, exclusão geral
+de evento/atividade ou chave de idempotência para criação de evento. Depois de falha de rede ao criar,
 consulte o painel antes de reenviar. SMTP requer configuração no backend.
 
 Testes disponíveis: serviços e validações em Vitest, domínio/casos de uso/HTTP em

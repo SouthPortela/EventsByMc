@@ -7,13 +7,13 @@ import java.util.List;
 public class Evento {
 
     private final UUID id;
-    private final String titulo;
-    private final String descricao;
+    private String titulo;
+    private String descricao;
     private final Usuario organizador;
     private final Programacao programacao;
-    private final LocalDateTime inicio;
-    private final LocalDateTime fim;
-    private final String local;
+    private LocalDateTime inicio;
+    private LocalDateTime fim;
+    private String local;
     private CategoriaEvento categoria;
 
     private EstadoEvento estado;
@@ -134,6 +134,23 @@ public class Evento {
         this.local = local;
         this.categoria = categoria;
         this.estado = estado;
+    }
+
+    public void editar(String titulo, String descricao, LocalDateTime inicio, LocalDateTime fim,
+                       String local, CategoriaEvento categoria) {
+        exigirNaoBloqueado();
+        if (estado == EstadoEvento.ENCERRADO) throw new IllegalStateException("Evento encerrado preserva seus dados históricos.");
+        if (titulo == null || titulo.trim().length() < 5 || titulo.trim().length() > 200
+                || descricao == null || descricao.trim().length() < 20 || descricao.trim().length() > 10000
+                || local == null || local.isBlank() || local.trim().length() > 200 || categoria == null
+                || inicio == null || fim == null || !fim.isAfter(inicio))
+            throw new IllegalArgumentException("Dados ou período do evento inválidos.");
+        for (var atividade : programacao.consultarAtividades()) {
+            if (atividade.getInicio() != null && (atividade.getInicio().isBefore(inicio) || atividade.getFim().isAfter(fim)))
+                throw new IllegalArgumentException("O período precisa abranger todas as atividades existentes.");
+        }
+        this.titulo = titulo.trim(); this.descricao = descricao.trim(); this.inicio = inicio;
+        this.fim = fim; this.local = local.trim(); this.categoria = categoria;
     }
 
     public void alterarCategoria(CategoriaEvento novaCategoria) {

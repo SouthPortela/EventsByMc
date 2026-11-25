@@ -14,3 +14,8 @@ export function consultarMinhaConta(): Promise<MinhaConta> {
     autenticada: true,
   })
 }
+
+export function atualizarMinhaConta(nome: string, email: string): Promise<MinhaConta> {
+  return apiRequest('/usuarios/me', { method: 'PUT', autenticada: true,
+    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, email }) })
+}

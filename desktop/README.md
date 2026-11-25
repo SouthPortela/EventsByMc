@@ -59,9 +59,11 @@ npm run desktop:dev
 O comando inicia o Vite em `127.0.0.1:5173` e abre o Electron. Ao fechar o aplicativo,
 o processo Vite e encerrado. A porta precisa estar livre. O backend nao e iniciado
 por este comando. Sem `.env.desktop`, utiliza o Nginx Docker em `127.0.0.1:80`,
-com o prefixo `/api/`. Os QR Codes apontam para `127.0.0.1` e so abrem no proprio
-computador; a confirmacao por codigo pode ser testada no navegador local. Testar
-QR no celular exigira uma etapa posterior de configuracao de acesso pela rede.
+com o prefixo `/api/`. O QR substitui o loopback pelo IP de rede do computador,
+preservando a porta do site Docker. A descoberta e refeita ao gerar uma chamada.
+O celular precisa estar na mesma rede e conseguir acessar a porta do site.
+Veja [QR na rede local](../docs/api/presenca-rede.md), incluindo o comando
+`npm run presenca:rede` para quem gera chamadas pelo site Docker em localhost.
 
 ## Build e distribuicao
 
@@ -72,7 +74,8 @@ npm run desktop:start
 
 O build verifica os tipos e gera a interface em `desktop/renderer/`, separada de
 `frontend/dist/`. Gera tambem `desktop/runtime-config.json`, com o destino fixo da
-API. Ambos sao artefatos ignorados pelo Git. Alteracoes nos enderecos exigem novo build.
+API. Ambos sao artefatos ignorados pelo Git. Alteracoes na API, porta ou dominio
+configurados exigem novo build; mudancas do IP local por DHCP sao detectadas em execucao.
 
 Depois do build, `npm run desktop:smoke` abre uma janela oculta do Electron e
 verifica a tela de login, CSS, armazenamento, isolamento e acesso a uma API simulada.
@@ -124,5 +127,5 @@ Antes de distribuir, valide com uma API de desenvolvimento: login, perfis,
 criacao/publicacao de evento no desktop aparecendo no site, QR aberto pelo celular,
 presenca visivel nos relatorios, downloads PDF/CSV, expiracao de sessao e perda de rede.
 As telas administrativas consultam a API real: usuários/perfis, visão global de eventos,
-bloqueio e auditoria. O banco deve estar na versão lógica 10; veja
+bloqueio e auditoria. O banco deve estar na versão lógica 11; veja
 [administração](../docs/api/administracao.md).
