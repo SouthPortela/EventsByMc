@@ -27,6 +27,7 @@
     "files": [
       "desktop/main.cjs",
       "desktop/config.cjs",
+      "desktop/servidor.cjs",
       "desktop/protocol.cjs",
       "frontend/tools/endereco-presenca.cjs",
       "desktop/runtime-config.json",
@@ -37,6 +38,8 @@
       "target": "nsis"
     },
     "nsis": {
+      "include": "desktop/installer/servidor.nsh",
+      "installerLanguages": ["pt_BR"],
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,

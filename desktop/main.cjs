@@ -4,6 +4,7 @@ const { app, BrowserWindow, dialog, protocol, session } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
 const { validarUrl } = require('./config.cjs')
+const { carregarServidor } = require('./servidor.cjs')
 const { SCHEME, APP_URL, confiavel, criarHandler } = require('./protocol.cjs')
 
 const desenvolvimento = !app.isPackaged && process.argv.includes('--desktop-dev')
@@ -56,14 +57,18 @@ if (!app.requestSingleInstanceLock()) {
       item.setSaveDialogOptions({ title: 'Salvar arquivo do EventsByMc' })
     })
     if (!desenvolvimento) {
-      const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'runtime-config.json'), 'utf8'))
+      const configPadrao = JSON.parse(fs.readFileSync(path.join(__dirname, 'runtime-config.json'), 'utf8'))
+      const config = app.isPackaged ? carregarServidor(path.dirname(app.getPath('exe')), configPadrao) : configPadrao
       const apiUrl = validarUrl(config.apiUrl, 'DESKTOP_API_URL')
-      protocol.handle(SCHEME, criarHandler({ rendererDir: path.join(__dirname, 'renderer'), apiUrl }))
+      const publicAppUrl = validarUrl(config.publicAppUrl, 'DESKTOP_PUBLIC_APP_URL')
+      protocol.handle(SCHEME, criarHandler({ rendererDir: path.join(__dirname, 'renderer'), apiUrl, publicAppUrl }))
     }
     criarJanela()
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) criarJanela() })
   }).catch(() => {
-    dialog.showErrorBox('Configuracao do EventsByMc', 'Execute npm run desktop:build com os enderecos configurados em .env.desktop.')
+    dialog.showErrorBox('Configuracao do EventsByMc', app.isPackaged
+      ? 'Nao foi possivel carregar o servidor. Execute o instalador novamente e confira o IP, a porta e a opcao HTTPS. A configuracao fica em servidor.ini, junto do executavel.'
+      : 'Execute npm run desktop:build com os enderecos configurados em .env.desktop.')
     app.quit()
   })
   app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })

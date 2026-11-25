@@ -8,16 +8,18 @@ const path = require('node:path')
 const { validarUrl, configuracaoDoAmbiente } = require('../config.cjs')
 const { APP_URL, confiavel, criarHandler } = require('../protocol.cjs')
 
-test('configuracao permite HTTP somente em loopback e rejeita credenciais', () => {
+test('configuracao permite HTTP em loopback ou IP privado e rejeita credenciais', () => {
   assert.equal(validarUrl('https://eventos.test/api', 'API'), 'https://eventos.test/api/')
   for (const valor of ['http://eventos.test/', 'https://nome:senha@eventos.test/',
     'https://eventos.test/?token=valor', 'file:///C:/index.html', 'https://eventos.test/#codigo']) {
     assert.throws(() => validarUrl(valor, 'API'))
   }
-  for (const valor of ['http://127.0.0.1:8080/', 'http://localhost/api/', 'http://[::1]/api/']) {
+  for (const valor of ['http://127.0.0.1:8080/', 'http://localhost/api/', 'http://[::1]/api/',
+    'http://192.168.1.2/', 'http://10.0.0.5/api/', 'http://172.16.0.1/api/']) {
     assert.equal(validarUrl(valor, 'API'), valor)
   }
-  for (const valor of ['http://192.168.1.2/', 'http://localhost.evil/', 'http://127.0.0.1.evil/']) {
+  for (const valor of ['http://203.0.113.2/', 'http://localhost.evil/', 'http://127.0.0.1.evil/',
+    'http://172.32.0.1/', 'http://192.169.1.2/']) {
     assert.throws(() => configuracaoDoAmbiente({ DESKTOP_API_URL: valor }))
   }
 })

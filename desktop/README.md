@@ -1,9 +1,10 @@
 # EventsByMc para Windows
 
-O desktop utiliza o mesmo codigo Vue do site e a mesma API Java. Java e PostgreSQL
-rodam em containers Docker no mesmo computador, junto com o site/Nginx. O Electron
-roda como aplicativo Windows fora do Docker e conecta pelas portas publicadas no host.
-Esta versao nao implementa sincronizacao offline; os containers precisam estar ativos.
+O desktop utiliza o mesmo codigo Vue do site e a mesma API Java. Java, PostgreSQL
+e site/Nginx rodam em containers Docker no computador servidor. O Electron pode
+ser instalado nesse computador ou em outros computadores da rede, escolhendo o
+servidor durante a instalacao. Esta versao nao implementa sincronizacao offline;
+o servidor precisa estar ativo e acessivel.
 
 ## Preparacao
 
@@ -16,7 +17,8 @@ npm run desktop:install
 Copy-Item .env.desktop.example .env.desktop
 ```
 
-Edite `.env.desktop` antes de gerar a distribuicao:
+Edite `.env.desktop` para definir os padroes de desenvolvimento e do executavel
+sem configuracao de instalacao:
 
 - `DESKTOP_API_URL`: raiz da API, incluindo `/api/` se o proxy do servidor usar esse prefixo.
 - `DESKTOP_PUBLIC_APP_URL`: raiz do site utilizada nos links de QR Code.
@@ -32,10 +34,11 @@ O frontend Docker publica `WEB_PORT=80` por padrao e encaminha `/api/` para o Ja
 Se o `.env` do Docker definir outra WEB_PORT, informe a mesma porta nos dois
 enderecos (exemplo: `http://127.0.0.1:8081/api/` e `http://127.0.0.1:8081/`).
 O desktop nao le o `.env` do backend nem recebe credenciais de banco ou JWT_SECRET.
-Enderecos sao publicos e incorporados ao build. HTTP em loopback e aceito tanto
-em desenvolvimento quanto no aplicativo empacotado; destinos remotos exigem HTTPS.
+Esses enderecos sao publicos e incorporados ao build como fallback. O instalador
+permite escolher outro destino, sem recompilar. HTTP e aceito em localhost e IPs
+privados da rede; os outros destinos exigem HTTPS.
 
-Com o `.env` do Docker ja configurado, inicie os servicos antes de abrir o desktop:
+No computador servidor, com o `.env` do Docker configurado, inicie os servicos:
 
 ```powershell
 docker compose up -d --build
@@ -43,7 +46,8 @@ docker compose up -d --build
 
 O site fica em `http://127.0.0.1/`. Nomes de servico como `app` e `postgres-db`
 existem na rede dos containers e nao devem ser usados como endereco pelo Electron.
-O desktop nao inicia nem encerra os containers automaticamente.
+O desktop nao inicia nem encerra os containers automaticamente. Computadores que
+acessam outro servidor precisam somente do aplicativo instalado e acesso a rede.
 
 `desktop:install` baixa o executavel oficial do Electron, necessario para abrir a
 janela. O pacote npm pode estar presente sem esse binario. Se ocorrer `fetch failed`,
@@ -74,8 +78,10 @@ npm run desktop:start
 
 O build verifica os tipos e gera a interface em `desktop/renderer/`, separada de
 `frontend/dist/`. Gera tambem `desktop/runtime-config.json`, com o destino fixo da
-API. Ambos sao artefatos ignorados pelo Git. Alteracoes na API, porta ou dominio
-configurados exigem novo build; mudancas do IP local por DHCP sao detectadas em execucao.
+API como fallback. Ambos sao artefatos ignorados pelo Git. O aplicativo instalado
+prioriza `servidor.ini`, junto do executavel, que permite mudar IP, porta e HTTPS
+sem gerar outro build. Mudancas do IP local por DHCP sao detectadas para o QR
+quando o servidor configurado e localhost.
 
 Depois do build, `npm run desktop:smoke` abre uma janela oculta do Electron e
 verifica a tela de login, CSS, armazenamento, isolamento e acesso a uma API simulada.
@@ -88,6 +94,39 @@ npm run desktop:dist
 
 `desktop:pack` gera a pasta executavel e `desktop:dist` gera o instalador NSIS para
 Windows em `release/`. O empacotador pode baixar ferramentas na primeira execucao.
+O instalador apresenta a etapa **Servidor do EventsByMc**, com estes valores:
+
+| Campo | Padrao | Exemplo de outro computador |
+|---|---|---|
+| IP ou nome do servidor | localhost | 192.168.1.4 |
+| Porta do site | 80 | 8081, se WEB_PORT=8081 no servidor |
+| Usar HTTPS | Desmarcado | Marque quando o servidor tiver HTTPS configurado |
+
+O mesmo instalador serve para todos os computadores. Informe o IP sem `http://`,
+sem caminhos e sem a porta; a porta tem seu proprio campo. Consultas e operacoes
+usam o site do servidor, que encaminha `/api/` ao Java. A porta escolhida e a mesma
+utilizada para abrir o site no navegador. HTTPS sugere 443 ao marcar a opcao;
+portas personalizadas podem ser informadas no campo.
+
+O instalador grava `servidor.ini` na pasta do aplicativo:
+
+```ini
+[servidor]
+host=192.168.1.4
+porta=8081
+https=0
+```
+
+`https=1` habilita HTTPS. Para mudar o destino depois, execute o instalador novamente
+ou feche o app, edite esse arquivo e reabra. A configuracao existente e carregada
+na reinstalacao e preservada em atualizacoes silenciosas. Uma instalacao nova
+comeca em localhost. Configuracao invalida impede a inicializacao e mostra como
+corrigir; o app nao troca silenciosamente de servidor.
+
+O QR usa o mesmo servidor escolhido no instalador. Se o app estiver instalado em
+um computador cliente, o QR aponta para o servidor, preservando a porta. Com
+localhost, a descoberta do IP local para acesso pelo celular continua funcionando.
+
 O instalador inicial utiliza o icone padrao do Electron; assinatura de codigo,
 icone definitivo e atualizacao automatica ainda precisam ser configurados para
 distribuicao publica. Um instalador sem assinatura pode exibir avisos do Windows.
