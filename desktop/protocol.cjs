@@ -70,7 +70,7 @@ async function encaminharApi(request, url, apiUrl, fetchImpl) {
   }
 }
 
-function criarHandler({ rendererDir, apiUrl, fetchImpl = fetch, detectarEndereco = detectarEnderecoRede }) {
+function criarHandler({ rendererDir, apiUrl, publicAppUrl, fetchImpl = fetch, detectarEndereco = detectarEnderecoRede }) {
   const raiz = path.resolve(rendererDir)
   return async (request) => {
     if (!confiavel(request.url)) return resposta(null, 403)
@@ -78,8 +78,10 @@ function criarHandler({ rendererDir, apiUrl, fetchImpl = fetch, detectarEndereco
     if (url.pathname.startsWith('/api/')) return encaminharApi(request, url, apiUrl, fetchImpl)
     if (!['GET', 'HEAD'].includes(request.method)) return resposta(null, 405)
     if (url.pathname === '/presenca-rede.json') {
-      const endereco = await detectarEndereco().catch(() => null)
-      return resposta(request.method === 'HEAD' ? null : JSON.stringify({ endereco }), 200,
+      const host = publicAppUrl ? new URL(publicAppUrl).hostname : 'localhost'
+      const servidorLocal = ['localhost', '[::1]'].includes(host) || host.startsWith('127.')
+      const endereco = servidorLocal ? await detectarEndereco().catch(() => null) : null
+      return resposta(request.method === 'HEAD' ? null : JSON.stringify({ endereco, ...(publicAppUrl ? { publicAppUrl } : {}) }), 200,
         { 'Content-Type': 'application/json' })
     }
     let pathname

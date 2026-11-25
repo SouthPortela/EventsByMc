@@ -37,6 +37,29 @@ describe('endereço do QR para o celular', () => {
     expect(buscar).not.toHaveBeenCalled()
   })
 
+  it('no desktop o servidor escolhido no instalador prevalece sobre o build e o IP do cliente', async () => {
+    const buscar = vi.fn<typeof fetch>().mockResolvedValue(Response.json({
+      publicAppUrl: 'http://192.168.1.4:8081/', endereco: '192.168.1.99',
+    }))
+    expect(await resolverEnderecoPresenca({ configurado: 'https://antigo.test/',
+      pagina: 'eventsbymc://app/organizador/frequencia', caminhoBase: '/' }, buscar)).toBe('http://192.168.1.4:8081/')
+    expect(buscar).toHaveBeenCalledOnce()
+  })
+
+  it('instalacao em localhost continua descobrindo o IP local para o celular', async () => {
+    const buscar = vi.fn<typeof fetch>().mockResolvedValue(Response.json({
+      publicAppUrl: 'http://localhost:8081/', endereco: '192.168.1.4',
+    }))
+    expect(await resolverEnderecoPresenca({ configurado: 'https://antigo.test/',
+      pagina: 'eventsbymc://app/organizador/frequencia', caminhoBase: '/' }, buscar)).toBe('http://192.168.1.4:8081/')
+  })
+
+  it('falha na leitura do servidor instalado impede QR com o dominio antigo do build', async () => {
+    const buscar = vi.fn<typeof fetch>().mockRejectedValue(new Error('Sem configuracao'))
+    await expect(resolverEnderecoPresenca({ configurado: 'https://antigo.test/',
+      pagina: 'eventsbymc://app/organizador/frequencia', caminhoBase: '/' }, buscar)).rejects.toThrow('Informe o endereço')
+  })
+
   it('não gera QR de loopback quando Docker não recebeu o endereço do host', async () => {
     for (const valor of [null, '127.0.0.1', '0.0.0.0', '999.168.1.4', '010.0.0.1', '192.168.1.4@outro.test', '203.0.113.2']) {
       await expect(resolverEnderecoPresenca(local, vi.fn<typeof fetch>().mockResolvedValue(resposta(valor)))).rejects.toThrow('Informe o endereço')

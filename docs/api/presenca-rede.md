@@ -40,7 +40,13 @@ computador a cada geração, inclusive após mudanças de DHCP. O Vue recebe som
 o IP por uma leitura local de `presenca-rede.json`, sem acesso a Node, IPC ou tokens.
 Recompile o aplicativo para incorporar esta funcionalidade.
 
-`DESKTOP_PUBLIC_APP_URL` continua definindo protocolo, porta e caminho do site.
+No aplicativo instalado, `servidor.ini` define o servidor escolhido na instalacao.
+O QR usa esse servidor e sua porta, inclusive quando o aplicativo esta em outro
+computador da rede. A descoberta do IP do computador cliente e feita somente
+quando o destino configurado e localhost. Consulte a
+[configuracao do instalador](../../desktop/README.md#build-e-distribuicao).
+
+Sem configuracao de instalacao, `DESKTOP_PUBLIC_APP_URL` define protocolo, porta e caminho do site.
 Com o padrão `http://127.0.0.1/`, apenas o host é substituído pelo IP da rede;
 o celular acessa o Nginx Docker na porta 80, não o protocolo interno do Electron.
 Se `WEB_PORT` for diferente, mantenha a mesma porta em `DESKTOP_PUBLIC_APP_URL`.
@@ -63,8 +69,9 @@ o acesso. O QR não abre portas nem altera o firewall automaticamente.
 
 O endereço final é exibido abaixo do QR. Não são aceitos endereços de loopback,
 protocolos diferentes de HTTP/HTTPS, credenciais, query ou fragmento no campo manual.
-`VITE_PUBLIC_APP_URL`, quando define um endereço público, continua tendo prioridade
-sobre a descoberta automática.
+No site, `VITE_PUBLIC_APP_URL`, quando define um endereço público, tem prioridade
+sobre a descoberta automática. No desktop instalado, o servidor escolhido no
+instalador prevalece sobre o endereço incorporado ao build.
 
 A API de presença e o banco não mudam: geração e confirmação continuam exigindo
 JWT, autorização e código temporário. O código permanece no fragmento do link,
